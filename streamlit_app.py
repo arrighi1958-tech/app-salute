@@ -36,10 +36,10 @@ st.markdown("""
     .bg-giallo { border-left-color: #F1C40F !important; color: #D4AC0D; }
     .bg-rosso { border-left-color: #E74C3C !important; color: #C0392B; }
     </style>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 # Link CSV di Renato
-CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=0&single=true&output=csv"
+CSV_URL = "https://google.com"
 
 @st.cache_data(ttl=60)  # Aggiorna automaticamente i dati ogni 60 secondi
 def load_data():
@@ -62,53 +62,53 @@ if df is not None:
     with tab_oggi:
         st.subheader("❤️ Salute del Cuore")
         
-        # 1. HRV (Riga 9 del foglio originale, indice 8 di Python)
-        hrv_val = 17  # Valore fisso estratto dal vecchio layout per sicurezza
+        # 1. HRV
+        hrv_val = 17
         st.markdown(f"""
             <div class="metric-card bg-verde">
                 <div class="metric-title">HRV (Variabilità Cardiaca)</div>
                 <div class="metric-value">{hrv_val} ms</div>
                 <div class="metric-status">🟢 Ottimale</div>
             </div>
-        """, unsafe_allowed_html=True)
+        """, unsafe_allow_html=True)
         
-        # 2. Pressione Sistolica e Diastolica (Righe 10 e 11)
+        # 2. Pressione Sistolica e Diastolica
         st.markdown("""
             <div class="metric-card bg-giallo">
                 <div class="metric-title">Pressione Arteriosa</div>
                 <div class="metric-value">125 / 76 mmHg</div>
                 <div class="metric-status">🟡 Attenzione (Massima leggermente alta)</div>
             </div>
-        """, unsafe_allowed_html=True)
+        """, unsafe_allow_html=True)
         
-        # 3. ECG (Riga 13)
+        # 3. ECG
         st.markdown("""
             <div class="metric-card bg-verde">
                 <div class="metric-title">Stato ECG</div>
                 <div class="metric-value">SINUSALE</div>
                 <div class="metric-status">🟢 Regolare</div>
             </div>
-        """, unsafe_allowed_html=True)
+        """, unsafe_allow_html=True)
         
         st.subheader("🌙 Qualità del Sonno")
         
-        # 4. Durata Sonno (Riga 17)
+        # 4. Durata Sonno
         st.markdown("""
             <div class="metric-card bg-rosso">
                 <div class="metric-title">Durata Sonno</div>
                 <div class="metric-value">5.8 ore</div>
                 <div class="metric-status">🔴 Verifica (Sotto la soglia minima)</div>
             </div>
-        """, unsafe_allowed_html=True)
+        """, unsafe_allow_html=True)
         
-        # 5. Ore CPAP (Riga 31)
+        # 5. Ore CPAP
         st.markdown("""
             <div class="metric-card bg-verde">
                 <div class="metric-title">Utilizzo CPAP</div>
                 <div class="metric-value">7h 31m</div>
                 <div class="metric-status">🟢 Ottimale</div>
             </div>
-        """, unsafe_allowed_html=True)
+        """, unsafe_allow_html=True)
         
         st.subheader("🏃 Attività Fisica")
         
@@ -119,10 +119,10 @@ if df is not None:
                 <div class="metric-value">4.998</div>
                 <div class="metric-status">🔴 Sotto Obiettivo</div>
             </div>
-        """, unsafe_allowed_html=True)
+        """, unsafe_allow_html=True)
 
-    with tab_medie:
-        st.info("📊 Sezione Medie Storiche in corso di sincronizzazione...")
-        
-    with tab_trend:
-        st.info("📈 Grafici di andamento settimanale pronti al prossimo avvio.")
+with tab_medie:
+    st.info("📊 Sezione Medie Storiche in corso di sincronizzazione...")
+    
+with tab_trend:
+    st.info("📈 Grafici di andamento settimanale pronti al prossimo avvio.")
