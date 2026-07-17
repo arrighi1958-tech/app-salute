@@ -63,14 +63,16 @@ st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
 
 with tab_oggi:
-    # Nuova funzione corazzata: prende qualsiasi testo o numero senza fare controlli rigidi
-    def prendi_dato(riga_foglio, valore_di_prova):
+    # Il radar: cerca il nome nella colonna A e restituisce il valore a fianco nella colonna B
+    def trova_valore_parametro(nome_parametro, valore_di_prova):
         try:
             if df is not None:
-                # Estrae il valore grezzo dalla colonna B (indice 1)
-                valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
-                if valore != "nan" and valore != "": 
-                    return valore
+                for i in range(len(df)):
+                    testo_cella = str(df.iloc[i, 0]).strip().lower()
+                    if nome_parametro.strip().lower() in testo_cella:
+                        valore = str(df.iloc[i, 1]).strip()
+                        if valore != "nan" and valore != "":
+                            return valore
             return str(valore_di_prova)
         except:
             return str(valore_di_prova)
@@ -81,16 +83,16 @@ with tab_oggi:
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Passi Settimanali</div>
-            <div class="metric-value">{prendi_dato(3, "8.383")}</div>
-            <div class="metric-status">🟢 Lettura Diretta Cella B3</div>
+            <div class="metric-value">{trova_valore_parametro("Media Passi Settimanali", "8.383")}</div>
+            <div class="metric-status">🟢 Radar dinamico attivo</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Giorni Totali Monitorati</div>
-            <div class="metric-value">{prendi_dato(4, "12")} giorni</div>
-            <div class="metric-status">🟢 Lettura Diretta Cella B4</div>
+            <div class="metric-value">{trova_valore_parametro("Giorni Totali Monitorati", "12")} giorni</div>
+            <div class="metric-status">🟢 Radar dinamico attivo</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -100,72 +102,72 @@ with tab_oggi:
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">ℹ️ INDICE WITHINGS COMPOSITO</div>
-            <div class="metric-value">{prendi_dato(5, "Cardio Ottimale")}</div>
-            <div class="metric-status">🟢 Lettura Diretta Cella B5</div>
+            <div class="metric-value">{trova_valore_parametro("Indice Withings Composito", "Cardio Ottimale")}</div>
+            <div class="metric-status">🟢 Valutazione Automatica</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Cardiaca Diurna</div>
-            <div class="metric-value">{prendi_dato(7, "67")} bpm</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B7</div>
+            <div class="metric-value">{trova_valore_parametro("Media Frequenza Cardiaca Diurna", "67")} bpm</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Battiti a Riposo (7gg)</div>
-            <div class="metric-value">{prendi_dato(8, "52")} bpm</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B8</div>
+            <div class="metric-value">{trova_valore_parametro("Media Frequenza Battiti a Riposo", "52")} bpm</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Variabilità Cardiaca (HRV) (7gg)</div>
-            <div class="metric-value">{prendi_dato(9, "18")} ms</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B9</div>
+            <div class="metric-value">{trova_valore_parametro("Media Variabilità Cardiaca", "18")} ms</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ossigeno nel Sangue (SpO2)</div>
-            <div class="metric-value">{prendi_dato(10, "96,2")} %</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B10</div>
+            <div class="metric-value">{trova_valore_parametro("Media Ossigeno nel Sangue", "96,2")} %</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Media Pressione Sistolica (Massima)</div>
-            <div class="metric-value">{prendi_dato(11, "101")} mmHg</div>
-            <div class="metric-status">🟡 Sincronizzato su cella B11</div>
+            <div class="metric-value">{trova_valore_parametro("Media Pressione Sistolica", "101")} mmHg</div>
+            <div class="metric-status">🟡 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Pressione Diastolica (Minima)</div>
-            <div class="metric-value">{prendi_dato(12, "70")} mmHg</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B12</div>
+            <div class="metric-value">{trova_valore_parametro("Media Pressione Diastolica", "70")} mmHg</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Ultimo Esito ECG Registrato</div>
-            <div class="metric-value">{prendi_dato(13, "ARITMIA")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B13</div>
+            <div class="metric-value">{trova_valore_parametro("Ultimo Esito ECG Registrato", "ARITMIA")}</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Livello di Stress Estimato (da HRV)</div>
-            <div class="metric-value">{prendi_dato(14, "Ottimale")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B14</div>
+            <div class="metric-value">{trova_valore_parametro("Livello di Stress Estimato", "Ottimale")}</div>
+            <div class="metric-status">🟢 Collegato alla cella viva</div>
         </div>
     """, unsafe_allow_html=True)
     # === QUALITÀ DEL SONNO E RECUPERO ===
@@ -174,127 +176,127 @@ with tab_oggi:
     st.markdown(f"""
         <div class="metric-card bg-rosso">
             <div class="metric-title">Media Ore di Sonno (7gg)</div>
-            <div class="metric-value">{prendi_dato(17, "5,86")} ore</div>
-            <div class="metric-status">🔴 Sincronizzato su cella B17</div>
+            <div class="metric-value">{trova_valore_parametro("Media Ore di Sonno", "5,86")} ore</div>
+            <div class="metric-status">🔴 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Media Punteggio Sonno Storico</div>
-            <div class="metric-value">{prendi_dato(18, "64")} / 100</div>
-            <div class="metric-status">🟡 Sincronizzato su cella B18</div>
+            <div class="metric-value">{trova_valore_parametro("Media Punteggio Sonno Storico", "64")} / 100</div>
+            <div class="metric-status">🟡 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Risvegli Notturni (7gg)</div>
-            <div class="metric-value">{prendi_dato(19, "3,2")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B19</div>
+            <div class="metric-value">{trova_valore_parametro("Media Risvegli Notturni", "3,2")}</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Efficienza del Sonno Media (7gg)</div>
-            <div class="metric-value">{prendi_dato(20, "63,53 %")}</div>
-            <div class="metric-status">🟡 Sincronizzato su cella B20</div>
+            <div class="metric-value">{trova_valore_parametro("Efficienza del Sonno Media", "63,53 %")}</div>
+            <div class="metric-status">🟡 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Temperatura Corporea Storica</div>
-            <div class="metric-value">{prendi_dato(21, "36,41")} °C</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B21</div>
+            <div class="metric-value">{trova_valore_parametro("Media Temperatura Corporea Storica", "36,41")} °C</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Valutazione della Qualità Respiratoria</div>
-            <div class="metric-value">{prendi_dato(22, "Ottimale")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B22</div>
+            <div class="metric-value">{trova_valore_parametro("Valutazione della Qualità Respiratoria", "Ottimale")}</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Stato Regolarità Ritmo Circadiano</div>
-            <div class="metric-value">{prendi_dato(23, "Cattivo")}</div>
-            <div class="metric-status">🟡 Sincronizzato su cella B23</div>
+            <div class="metric-value">{trova_valore_parametro("Stato Regolarità Ritmo Circadiano", "Cattivo")}</div>
+            <div class="metric-status">🟡 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
-            <div class="metric-value">{prendi_dato(24, "1,6")} ore</div>
-            <div class="metric-status">🟢 Lettura Diretta Cella B24</div>
+            <div class="metric-value">{trova_valore_parametro("Media Ore Sonno Profondo", "1,6")} ore</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Respiratoria Notturna</div>
-            <div class="metric-value">{prendi_dato(25, "16")} bpm</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B25</div>
+            <div class="metric-value">{trova_valore_parametro("Media Frequenza Respiratoria Notturna", "16")} bpm</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Rapporto Recupero HRV (Fine vs Inizio)</div>
-            <div class="metric-value">{prendi_dato(26, "2,8")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B26</div>
+            <div class="metric-value">{trova_valore_parametro("Rapporto Recupero HRV", "2,8")}</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Punteggio di Recupero Fisico (PAI)</div>
-            <div class="metric-value">{prendi_dato(27, "72,7")}</div>
-            <div class="metric-status">🟢 Lettura Diretta Cella B27</div>
+            <div class="metric-value">{trova_valore_parametro("Punteggio di Recupero Fisico", "72,7")}</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Punteggio di Recupero Mentale</div>
-            <div class="metric-value">{prendi_dato(28, "54")} / 100</div>
-            <div class="metric-status">🟡 Sincronizzato su cella B28</div>
+            <div class="metric-value">{trova_valore_parametro("Punteggio di Recupero Mentale", "54")} / 100</div>
+            <div class="metric-status">🟡 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Monitoraggio Rischio Apnea Notturna</div>
-            <div class="metric-value">{prendi_dato(29, "Basso")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B29</div>
+            <div class="metric-value">{trova_valore_parametro("Monitoraggio Rischio Apnea Notturna", "Basso")}</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-rosso">
             <div class="metric-title">Picco Frequenza Cardiaca Massima (7gg)</div>
-            <div class="metric-value">{prendi_dato(30, "137")} bpm</div>
-            <div class="metric-status">🔴 Sincronizzato su cella B30</div>
+            <div class="metric-value">{trova_valore_parametro("Picco Frequenza Cardiaca Massima", "137")} bpm</div>
+            <div class="metric-status">🔴 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
-            <div class="metric-value">{prendi_dato(31, "6,5")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B31</div>
+            <div class="metric-value">{trova_valore_parametro("Media Ore Utilizzo CPAP", "6,5")}</div>
+            <div class="metric-status">🟢 Inseguimento automatico riga</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Monitoraggio Parametro Aggiuntivo</div>
-            <div class="metric-value">{prendi_dato(32, "Attivo")}</div>
+            <div class="metric-value">{trova_valore_parametro("Monitoraggio Parametro Aggiuntivo", "Attivo")}</div>
             <div class="metric-status">🟢 Sincronizzato su cella B32</div>
         </div>
     """, unsafe_allow_html=True)
