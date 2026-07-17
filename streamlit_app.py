@@ -112,7 +112,8 @@ with tab_oggi:
         </div>
     """, unsafe_allow_html=True)
     
-    <div class="metric-card bg-verde">
+    st.markdown("""
+        <div class="metric-card bg-verde">
             <div class="metric-title">Media Pressione Diastolica (Minima)</div>
             <div class="metric-value">70 mmHg</div>
             <div class="metric-status">🟢 Ottimale</div>
