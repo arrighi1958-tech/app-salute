@@ -49,7 +49,7 @@ st.markdown("""
 # Il timestamp forza l'aggiornamento reale dei tuoi dati ogni volta che apri l'app
 CSV_URL = f"https://google.com{int(time.time())}"
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=1)
 def load_data():
     try:
         df = pd.read_csv(CSV_URL, header=None)
@@ -68,6 +68,7 @@ if df is not None:
     with tab_oggi:
         def prendi_dato(riga_foglio):
             try:
+                # CORREZIONE: Impostato fisso su 1 che legge la tua COLONNA B del foglio Pannello
                 valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
                 if valore == "nan" or valore == "": 
                     return "N/D"
@@ -283,7 +284,6 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-    # Correzione Chirurgica: ecco i 4 spazi aggiunti all'inizio di ogni riga!
     with tab_medie:
         st.info("📊 Sezione Medie Storiche attiva.")
     with tab_trend:
