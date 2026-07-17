@@ -46,17 +46,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Link reale del tuo Google Fogli in formato CSV
+# Link del tuo Google Fogli pubblicato come CSV
 CSV_URL = "https://google.com"
 
 @st.cache_data(ttl=5)
 def load_data():
     try:
-        # Aggiunge un timestamp dinamico per evitare i blocchi della cache di internet
         url_dinamico = f"{CSV_URL}&cache_bust={int(time.time())}"
         df = pd.read_csv(url_dinamico, header=None)
         return df
-    except:
+    except Exception as e:
+        st.sidebar.error(f"Errore di connessione: {e}")
         return None
 
 df = load_data()
@@ -64,15 +64,17 @@ df = load_data()
 st.title("🩺 Cruscotto Salute Renato")
 st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 
+if df is None:
+    st.error("⚠️ Attenzione: L'applicazione non riesce a scaricare i dati online dal link di Google Fogli. Controlla che il file sia ancora pubblicato in formato CSV.")
+
 tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
 
 with tab_oggi:
     def prendi_dato(riga_foglio, valore_di_prova):
         try:
             if df is not None:
-                # Legge la riga del foglio e punta alla colonna B (indice 1)
                 valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
-                if valore != "nan" and valore != "" and len(valore) < 15: 
+                if valore != "nan" and valore != "": 
                     return valore
             return str(valore_di_prova)
         except:
@@ -163,7 +165,14 @@ with tab_oggi:
             <div class="metric-status">🟢 Stato di Riposo Ottimo</div>
         </div>
     """, unsafe_allow_html=True)
-    
+
+    st.markdown(f"""
+        <div class="metric-card bg-rosso">
+            <div class="metric-title">Picco Frequenza Cardiaca Massima (7gg)</div>
+            <div class="metric-value">{prendi_dato(30, "137")} bpm</div>
+            <div class="metric-status">🔴 Monitorare Sforzo</div>
+        </div>
+    """, unsafe_allow_html=True)
     # === QUALITÀ DEL SONNO E RECUPERO ===
     st.markdown('<div class="section-header">🌙 Qualità del Sonno e Recupero</div>', unsafe_allow_html=True)
     
@@ -172,6 +181,14 @@ with tab_oggi:
             <div class="metric-title">Media Ore di Sonno (7gg)</div>
             <div class="metric-value">{prendi_dato(17, "5,86")} ore</div>
             <div class="metric-status">🔴 Carenza Sonno (Sotto 6 ore)</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
+            <div class="metric-value">{prendi_dato(24, "6,4")} ore</div>
+            <div class="metric-status">🟢 Buona quota profonda</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -214,12 +231,63 @@ with tab_oggi:
             <div class="metric-status">🟢 Assenza di Disturbi</div>
         </div>
     """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Frequenza Respiratoria Media Notturna</div>
+            <div class="metric-value">{prendi_dato(25, "16")} apm</div>
+            <div class="metric-status">🟢 Regolare</div>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Stato Regolarità Ritmo Circadiano</div>
             <div class="metric-value">{prendi_dato(23, "Cattivo")}</div>
             <div class="metric-status">🟡 Da Regolarizzare</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # === MONITORAGGIO TERAPEUTICO E RECUPERO AVANZATO ===
+    st.markdown('<div class="section-header">🩺 Monitoraggio Avanzato e Recupero</div>', unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
+            <div class="metric-value">{prendi_dato(31, "6,4")} ore</div>
+            <div class="metric-status">🟢 Aderenza Terapia Ottima</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Monitoraggio Rischio Apnea Notturna</div>
+            <div class="metric-value">{prendi_dato(29, "Basso / Assente")}</div>
+            <div class="metric-status">🟢 Sotto Controllo</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Punteggio di Recupero Fisico</div>
+            <div class="metric-value">{prendi_dato(27, "121,7")}</div>
+            <div class="metric-status">🟢 Ottimo Livello</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-rosso">
+            <div class="metric-title">Punteggio di Recupero Mentale</div>
+            <div class="metric-value">{prendi_dato(28, "52")}</div>
+            <div class="metric-status">🔴 Stanchezza Accumulata</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Rapporto Recupero HRV (Inizio/Fine Notte)</div>
+            <div class="metric-value">{prendi_dato(26, "2,4")}</div>
+            <div class="metric-status">🟢 Buon Andamento Vagale</div>
         </div>
     """, unsafe_allow_html=True)
 
