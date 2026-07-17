@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
+import requests
+import io
 
+# Configurazione della pagina per il Samsung A17
 st.set_page_config(page_title="Pannello Salute Renato", page_icon="🩺", layout="centered")
 
 st.markdown("""
@@ -21,7 +24,10 @@ CSV_URL = "https://google.com"
 @st.cache_data(ttl=10)
 def load_data():
     try:
-        df = pd.read_csv(CSV_URL, header=None)
+        # Camuffamento della richiesta per saltare il blocco robot di Google
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        response = requests.get(CSV_URL, headers=headers)
+        df = pd.read_csv(io.StringIO(response.text), header=None)
         return df
     except:
         return None
@@ -36,30 +42,31 @@ if df is not None:
     with tab_oggi:
         def get_val(riga_foglio):
             try:
+                # Estrae il valore dalla colonna B (indice 1) della riga selezionata
                 val = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
                 return "N/D" if val in ["nan", ""] else val
             except:
                 return "N/D"
 
         st.markdown('<div class="section-header">🏃 Stile di Vita e Attività</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Passi Settimanali</div><div class="metric-value">{get_val(3)}</div><div class="metric-status">🟢 Obiettivo Minimo</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Giorni Totali Monitorati</div><div class="metric-value">{get_val(4)} giorni</div><div class="metric-status">🟢 Storico</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Passi Settimanali</div><div class="metric-value">{get_val(3)}</div><div class="metric-status">🟢 In aggiornamento continuo</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Giorni Totali Monitorati</div><div class="metric-value">{get_val(4)}</div><div class="metric-status">🟢 Storico</div></div>', unsafe_allow_html=True)
         
         st.markdown('<div class="section-header">❤️ Salute del Cuore</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Frequenza Cardiaca Diurna</div><div class="metric-value">{get_val(7)} bpm</div><div class="metric-status">🟢 Regolare</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Frequenza Battiti a Riposo (7gg)</div><div class="metric-value">{get_val(8)} bpm</div><div class="metric-status">🟢 Eccellente</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Variabilità Cardiaca (HRV) (7gg)</div><div class="metric-value">{get_val(9)} ms</div><div class="metric-status">🟢 Bilanciato</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigeno nel Sangue (SpO2)</div><div class="metric-value">{get_val(10)} %</div><div class="metric-status">🟢 Ottimale</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Media Pressione Sistolica (Massima)</div><div class="metric-value">{get_val(11)} mmHg</div><div class="metric-status">🟡 Attenzione</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Media Pressione Sistolica (Massima)</div><div class="metric-value">{get_val(11)} mmHg</div><div class="metric-status">🟡 Monitorare massima</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Pressione Diastolica (Minima)</div><div class="metric-value">{get_val(12)} mmHg</div><div class="metric-status">🟢 Ottimale</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Ultimo Esito ECG Registrato</div><div class="metric-value">{get_val(13)}</div><div class="metric-status">🟢 Regolare</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Livello di Stress Stimato (da HRV)</div><div class="metric-value">{get_val(14)}</div><div class="metric-status">🟢 Stato Ottimo</div></div>', unsafe_allow_html=True)
 
         st.markdown('<div class="section-header">🌙 Qualità del Sonno e Recupero</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Ore di Sonno (7gg)</div><div class="metric-value">{get_val(17)} ore</div><div class="metric-status">🔴 Carenza</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Ore di Sonno (7gg)</div><div class="metric-value">{get_val(17)} ore</div><div class="metric-status">🔴 Monitorare ore</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Media Punteggio Sonno Storico</div><div class="metric-value">{get_val(18)} / 100</div><div class="metric-status">🟡 Moderato</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Risvegli Notturni (7gg)</div><div class="metric-value">{get_val(19)}</div><div class="metric-status">🟢 Nella Norma</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Efficienza del Sonno Media (7gg)</div><div class="metric-value">{get_val(20)}</div><div class="metric-status">🟡 Monitorare</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Efficienza del Sonno Media (7gg)</div><div class="metric-value">{get_val(20)}</div><div class="metric-status">🟡 Monitorare continuità</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Temperatura Corporea Storica</div><div class="metric-value">{get_val(21)} °C</div><div class="metric-status">🟢 Regolare</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Valutazione della Qualità Respiratoria</div><div class="metric-value">{get_val(22)}</div><div class="metric-status">🟢 Assenza Disturbi</div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Stato Regolarità Ritmo Circadiano</div><div class="metric-value">{get_val(23)}</div><div class="metric-status">🟢 Sonno Stabile</div></div>', unsafe_allow_html=True)
