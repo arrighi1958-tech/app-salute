@@ -290,6 +290,7 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
+    # Chiusura delle schede posizionata con il perfetto rientro a 4 spazi!
     with tab_medie:
         st.info("📊 Sezione Medie Storiche attiva nella colonna Z e AA.")
     with tab_trend:
