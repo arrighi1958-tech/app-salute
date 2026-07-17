@@ -66,11 +66,8 @@ with tab_oggi:
     def prendi_dato(riga_foglio, valore_di_prova):
         try:
             if df is not None:
-                idx_riga = int(riga_foglio) - 1
-                # Controllo di sicurezza: tenta la colonna B (indice 1), se fallisce o trova testo vuoto prova la colonna C (indice 2)
-                valore = str(df.iloc[idx_riga, 1]).strip()
-                if valore in ["nan", ""] or valore.isalpha():
-                    valore = str(df.iloc[idx_riga, 2]).strip()
+                # Legge esattamente la colonna B (indice 1) della riga indicata dal tuo Pannello
+                valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
                 if valore != "nan" and valore != "" and len(valore) < 20: 
                     return valore
             return str(valore_di_prova)
@@ -103,7 +100,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">ℹ️ INDICE WITHINGS COMPOSITO</div>
             <div class="metric-value">{prendi_dato(5, "Cardio Ottimale")}</div>
-            <div class="metric-status">🟢 Valutazione Automatica</div>
+            <div class="metric-status">🟢 Valutazione Automatica celi B5</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -111,7 +108,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Cardiaca Diurna</div>
             <div class="metric-value">{prendi_dato(7, "67")} bpm</div>
-            <div class="metric-status">🟢 Regolare (ok)</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B7</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -119,7 +116,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Battiti a Riposo (7gg)</div>
             <div class="metric-value">{prendi_dato(8, "52")} bpm</div>
-            <div class="metric-status">🟢 Eccellente Recupero</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B8</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -127,7 +124,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Variabilità Cardiaca (HRV) (7gg)</div>
             <div class="metric-value">{prendi_dato(9, "18")} ms</div>
-            <div class="metric-status">🟢 Bilanciato (ok)</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B9</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -135,7 +132,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ossigeno nel Sangue (SpO2)</div>
             <div class="metric-value">{prendi_dato(10, "96,2")} %</div>
-            <div class="metric-status">🟢 Ottimale</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B10</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -143,7 +140,7 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Media Pressione Sistolica (Massima)</div>
             <div class="metric-value">{prendi_dato(11, "101")} mmHg</div>
-            <div class="metric-status">🟡 Attenzione (Leggermente Bassa)</div>
+            <div class="metric-status">🟡 Sincronizzato su cella B11</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -151,7 +148,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Pressione Diastolica (Minima)</div>
             <div class="metric-value">{prendi_dato(12, "70")} mmHg</div>
-            <div class="metric-status">🟢 Ottimale</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B12</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -159,15 +156,15 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Ultimo Esito ECG Registrato</div>
             <div class="metric-value">{prendi_dato(13, "ARITMIA")}</div>
-            <div class="metric-status">🟢 Registrato nel Sistema</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B13</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
-            <div class="metric-title">Livello di Stress Estimato (da HRV)</div>
+            <div class="metric-title">Livello di Stress Stimato (da HRV)</div>
             <div class="metric-value">{prendi_dato(14, "Ottimale")}</div>
-            <div class="metric-status">🟢 Stato di Riposo Ottimo</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B14</div>
         </div>
     """, unsafe_allow_html=True)
     # === QUALITÀ DEL SONNO E RECUPERO ===
@@ -177,7 +174,7 @@ with tab_oggi:
         <div class="metric-card bg-rosso">
             <div class="metric-title">Media Ore di Sonno (7gg)</div>
             <div class="metric-value">{prendi_dato(17, "5,86")} ore</div>
-            <div class="metric-status">🔴 Carenza Sonno (Sotto 6 ore)</div>
+            <div class="metric-status">🔴 Sincronizzato su cella B17</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -185,7 +182,7 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Media Punteggio Sonno Storico</div>
             <div class="metric-value">{prendi_dato(18, "64")} / 100</div>
-            <div class="metric-status">🟡 Valutazione Moderata</div>
+            <div class="metric-status">🟡 Sincronizzato su cella B18</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -193,7 +190,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Risvegli Notturni (7gg)</div>
             <div class="metric-value">{prendi_dato(19, "3,2")}</div>
-            <div class="metric-status">🟢 Nella Norma</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B19</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -201,7 +198,7 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Efficienza del Sonno Media (7gg)</div>
             <div class="metric-value">{prendi_dato(20, "63,53 %")}</div>
-            <div class="metric-status">🟡 Monitorare Continuità</div>
+            <div class="metric-status">🟡 Sincronizzato su cella B20</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -209,7 +206,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Temperatura Corporea Storica</div>
             <div class="metric-value">{prendi_dato(21, "36,41")} °C</div>
-            <div class="metric-status">🟢 Regolare</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B21</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -217,7 +214,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Valutazione della Qualità Respiratoria</div>
             <div class="metric-value">{prendi_dato(22, "Ottimale")}</div>
-            <div class="metric-status">🟢 Assenza di Disturbi</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B22</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -225,7 +222,7 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Stato Regolarità Ritmo Circadiano</div>
             <div class="metric-value">{prendi_dato(23, "Cattivo")}</div>
-            <div class="metric-status">🟡 Monitorare Orari Sonno</div>
+            <div class="metric-status">🟡 Sincronizzato su cella B23</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -233,7 +230,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
             <div class="metric-value">{prendi_dato(24, "1,6")} ore</div>
-            <div class="metric-status">🟢 Sbloccato su cella B24</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B24</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -241,7 +238,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Respiratoria Notturna</div>
             <div class="metric-value">{prendi_dato(25, "16")} bpm</div>
-            <div class="metric-status">🟢 Regolare ed Equilibrata</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B25</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -249,7 +246,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Rapporto Recupero HRV (Fine vs Inizio)</div>
             <div class="metric-value">{prendi_dato(26, "2,8")}</div>
-            <div class="metric-status">🟢 Cuore Recuperato</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B26</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -257,7 +254,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Punteggio di Recupero Fisico (PAI)</div>
             <div class="metric-value">{prendi_dato(27, "72,7")}</div>
-            <div class="metric-status">🟢 Sbloccato su cella B27</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B27</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -265,7 +262,7 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Punteggio di Recupero Mentale</div>
             <div class="metric-value">{prendi_dato(28, "54")} / 100</div>
-            <div class="metric-status">🟡 Sotto la Media Settimanale</div>
+            <div class="metric-status">🟡 Sincronizzato su cella B28</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -273,7 +270,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Monitoraggio Rischio Apnea Notturna</div>
             <div class="metric-value">{prendi_dato(29, "Basso")}</div>
-            <div class="metric-status">🟢 Livello Sicuro</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B29</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -281,7 +278,7 @@ with tab_oggi:
         <div class="metric-card bg-rosso">
             <div class="metric-title">Picco Frequenza Cardiaca Massima (7gg)</div>
             <div class="metric-value">{prendi_dato(30, "137")} bpm</div>
-            <div class="metric-status">🔴 Picco Sotto Sforzo Elevato</div>
+            <div class="metric-status">🔴 Sincronizzato su cella B30</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -289,7 +286,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
             <div class="metric-value">{prendi_dato(31, "6,5")}</div>
-            <div class="metric-status">🟢 Terapia Regolare</div>
+            <div class="metric-status">🟢 Sincronizzato su cella B31</div>
         </div>
     """, unsafe_allow_html=True)
     
