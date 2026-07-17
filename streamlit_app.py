@@ -146,7 +146,7 @@ with tab_oggi:
         </div>
     """, unsafe_allow_html=True)
     
-       st.markdown(f"""
+    st.markdown(f"""
         <div class="metric-card bg-giallo">
             <div class="metric-title">Stato Regolarità Ritmo Circadiano</div>
             <div class="metric-value">{prendi_dato(23, "Cattivo")}</div>
@@ -161,6 +161,7 @@ with tab_medie:
 with tab_trend:
     st.subheader("Grafici e Trend temporali")
     st.info("In questa sezione potrai visualizzare l'andamento grafico dei tuoi parametri medici.")
+
 
         </div>
     """, unsafe_allow_html=True)
