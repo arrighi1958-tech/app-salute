@@ -46,7 +46,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Nuovo link ricreato e controllato al millimetro dal tuo screenshot
+# Link esatto ricostruito millimetro per millimetro dal tuo ultimo screenshot
 CSV_URL = f"https://google.com{int(time.time())}"
 
 @st.cache_data(ttl=1)
@@ -68,6 +68,7 @@ if df is not None:
     with tab_oggi:
         def prendi_dato(riga_foglio, valore_di_prova):
             try:
+                # Legge la riga richiesta e punta fisso sulla colonna B (indice 1)
                 valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
                 if valore == "nan" or valore == "" or len(valore) > 15: 
                     return str(valore_di_prova)
@@ -76,7 +77,7 @@ if df is not None:
                 return str(valore_di_prova)
 
         # === STILE DI VITA E ATTIVITÀ ===
-        st.markdown('<div class="section-header">🏃 Stile di Vita e Attività</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🏃 Stile di Vita e Actività</div>', unsafe_allow_html=True)
         
         st.markdown(f"""
             <div class="metric-card bg-verde">
