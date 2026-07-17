@@ -45,9 +45,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🩺 Cruscotto Salute Renato")
-st.write("Pannello di Monitoraggio Personale")
+st.write("Visualizzazione Completa e Ottimizzata per il Telefono")
 
-tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (Pannello)", "Medie Storiche", "Trend"])
+tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (Tutti i Parametri)", "Medie Storiche", "Trend"])
 
 with tab_oggi:
     # === STILE DI VITA E ATTIVITÀ ===
@@ -57,7 +57,15 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Passi Settimanali</div>
             <div class="metric-value">8.383</div>
-            <div class="metric-status">🟢 Obiettivo Minimo Raggiunto</div>
+            <div class="metric-status">🟢 Obiettivo Raggiunto (Ottimo)</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Giorni Totali Monitorati</div>
+            <div class="metric-value">12 giorni</div>
+            <div class="metric-status">🟢 Storico Attivo</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -76,22 +84,23 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Frequenza Cardiaca Diurna</div>
             <div class="metric-value">67 bpm</div>
-            <div class="metric-status">🟢 Regolare</div>
+            <div class="metric-status">🟢 Regolare (ok)</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown("""
         <div class="metric-card bg-verde">
-            <div class="metric-title">Media Frequenza Battiti a Riposo</div>
+            <div class="metric-title">Media Frequenza Battiti a Riposo (7gg)</div>
             <div class="metric-value">52 bpm</div>
             <div class="metric-status">🟢 Eccellente Recupero</div>
         </div>
     """, unsafe_allow_html=True)
+    
     st.markdown("""
         <div class="metric-card bg-verde">
-            <div class="metric-title">Media Variabilità Cardiaca (HRV)</div>
+            <div class="metric-title">Media Variabilità Cardiaca (HRV) (7gg)</div>
             <div class="metric-value">18 ms</div>
-            <div class="metric-status">🟢 Bilanciato</div>
+            <div class="metric-status">🟢 Bilanciato (ok)</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -107,7 +116,7 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Media Pressione Sistolica (Massima)</div>
             <div class="metric-value">101 mmHg</div>
-            <div class="metric-status">🟡 Monitorare Massima</div>
+            <div class="metric-status">🟡 Attenzione (Leggermente Bassa)</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -118,7 +127,22 @@ with tab_oggi:
             <div class="metric-status">🟢 Ottimale</div>
         </div>
     """, unsafe_allow_html=True)
-
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Ultimo Esito ECG Registrato</div>
+            <div class="metric-value">ARITMIA</div>
+            <div class="metric-status">🟢 Registrato nel Sistema</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Livello di Stress Stimato (da HRV)</div>
+            <div class="metric-value">Ottimale / Rilassato</div>
+            <div class="metric-status">🟢 Stato di Riposo Ottimo</div>
+        </div>
+    """, unsafe_allow_html=True)
     # === QUALITÀ DEL SONNO E RECUPERO ===
     st.markdown('<div class="section-header">🌙 Qualità del Sonno e Recupero</div>', unsafe_allow_html=True)
     
@@ -134,19 +158,115 @@ with tab_oggi:
         <div class="metric-card bg-giallo">
             <div class="metric-title">Media Punteggio Sonno Storico</div>
             <div class="metric-value">64 / 100</div>
-            <div class="metric-status">🟡 Moderato</div>
+            <div class="metric-status">🟡 Valutazione Moderata</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown("""
         <div class="metric-card bg-verde">
-            <div class="metric-title">Media Ore Sonno Profondo</div>
+            <div class="metric-title">Media Risvegli Notturni (7gg)</div>
+            <div class="metric-value">3,2</div>
+            <div class="metric-status">🟢 Nella Norma</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-giallo">
+            <div class="metric-title">Efficienza del Sonno Media (7gg)</div>
+            <div class="metric-value">63,53 %</div>
+            <div class="metric-status">🟡 Monitorare Continuità</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Temperatura Corporea Storica</div>
+            <div class="metric-value">36,41 °C</div>
+            <div class="metric-status">🟢 Regolare</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Valutazione della Qualità Respiratoria</div>
+            <div class="metric-value">Ottimale</div>
+            <div class="metric-status">🟢 Assenza di Disturbi</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-giallo">
+            <div class="metric-title">Stato Regolarità Ritmo Circadiano</div>
+            <div class="metric-value">Cattivo</div>
+            <div class="metric-status">🟡 Monitorare Orari Sonno</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
             <div class="metric-value">1,6 ore</div>
             <div class="metric-status">🟢 Livello Ottimale</div>
         </div>
     """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Frequenza Respiratoria Notturna</div>
+            <div class="metric-value">16 bpm</div>
+            <div class="metric-status">🟢 Regolare ed Equilibrata</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Rapporto Recupero HRV (Fine vs Inizio)</div>
+            <div class="metric-value">2,8</div>
+            <div class="metric-status">🟢 Cuore Recuperato</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Punteggio di Recupero Fisico (PAI)</div>
+            <div class="metric-value">72,7</div>
+            <div class="metric-status">🟢 Buono Stato Fisico</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-giallo">
+            <div class="metric-title">Punteggio di Recupero Mentale</div>
+            <div class="metric-value">54 / 100</div>
+            <div class="metric-status">🟡 Sotto la Media Settimanale</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Monitoraggio Rischio Apnea Notturna</div>
+            <div class="metric-value">Basso / Assente</div>
+            <div class="metric-status">🟢 Livello Sicuro</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-rosso">
+            <div class="metric-title">Picco Frequenza Cardiaca Massima (7gg)</div>
+            <div class="metric-value">137 bpm</div>
+            <div class="metric-status">🔴 Picco Sotto Sforzo Elevato</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
+            <div class="metric-value">6,5 ore</div>
+            <div class="metric-status">🟢 Terapia Regolare</div>
+        </div>
+    """, unsafe_allow_html=True)
 
 with tab_medie:
-    st.info("📊 Sezione Medie Storiche attiva e al sicuro.")
+    st.info("📊 Sezione Medie Storiche attiva nella colonna Z e AA.")
 with tab_trend:
     st.info("📈 Grafici di andamento settimanale pronti.")
