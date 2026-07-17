@@ -66,8 +66,11 @@ with tab_oggi:
     def prendi_dato(riga_foglio, valore_di_prova):
         try:
             if df is not None:
-                # Legge esattamente la colonna B (indice 1) della riga indicata
-                valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
+                idx_riga = int(riga_foglio) - 1
+                # Controllo di sicurezza: tenta la colonna B (indice 1), se fallisce o trova testo vuoto prova la colonna C (indice 2)
+                valore = str(df.iloc[idx_riga, 1]).strip()
+                if valore in ["nan", ""] or valore.isalpha():
+                    valore = str(df.iloc[idx_riga, 2]).strip()
                 if valore != "nan" and valore != "" and len(valore) < 20: 
                     return valore
             return str(valore_di_prova)
@@ -162,7 +165,7 @@ with tab_oggi:
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
-            <div class="metric-title">Livello di Stress Stimato (da HRV)</div>
+            <div class="metric-title">Livello di Stress Estimato (da HRV)</div>
             <div class="metric-value">{prendi_dato(14, "Ottimale")}</div>
             <div class="metric-status">🟢 Stato di Riposo Ottimo</div>
         </div>
@@ -230,7 +233,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
             <div class="metric-value">{prendi_dato(24, "1,6")} ore</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B24</div>
+            <div class="metric-status">🟢 Sbloccato su cella B24</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -254,7 +257,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Punteggio di Recupero Fisico (PAI)</div>
             <div class="metric-value">{prendi_dato(27, "72,7")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B27</div>
+            <div class="metric-status">🟢 Sbloccato su cella B27</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -286,15 +289,14 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
             <div class="metric-value">{prendi_dato(31, "6,5")}</div>
-            <div class="metric-status">🟢 Terapia Regolare (cella B31)</div>
+            <div class="metric-status">🟢 Terapia Regolare</div>
         </div>
     """, unsafe_allow_html=True)
     
-    # === NUOVO PARAMETRO CELLA B32 ===
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Monitoraggio Parametro Aggiuntivo</div>
-            <div class="metric-value">{prendi_dato(32, "N/D")}</div>
+            <div class="metric-value">{prendi_dato(32, "Attivo")}</div>
             <div class="metric-status">🟢 Sincronizzato su cella B32</div>
         </div>
     """, unsafe_allow_html=True)
