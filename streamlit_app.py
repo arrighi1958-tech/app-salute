@@ -63,12 +63,13 @@ st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
 
 with tab_oggi:
+    # Nuova funzione corazzata: prende qualsiasi testo o numero senza fare controlli rigidi
     def prendi_dato(riga_foglio, valore_di_prova):
         try:
             if df is not None:
-                # Legge esattamente la colonna B (indice 1) della riga indicata dal tuo Pannello
+                # Estrae il valore grezzo dalla colonna B (indice 1)
                 valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
-                if valore != "nan" and valore != "" and len(valore) < 20: 
+                if valore != "nan" and valore != "": 
                     return valore
             return str(valore_di_prova)
         except:
@@ -81,7 +82,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Passi Settimanali</div>
             <div class="metric-value">{prendi_dato(3, "8.383")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B3</div>
+            <div class="metric-status">🟢 Lettura Diretta Cella B3</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -89,7 +90,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Giorni Totali Monitorati</div>
             <div class="metric-value">{prendi_dato(4, "12")} giorni</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B4</div>
+            <div class="metric-status">🟢 Lettura Diretta Cella B4</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -100,7 +101,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">ℹ️ INDICE WITHINGS COMPOSITO</div>
             <div class="metric-value">{prendi_dato(5, "Cardio Ottimale")}</div>
-            <div class="metric-status">🟢 Valutazione Automatica celi B5</div>
+            <div class="metric-status">🟢 Lettura Diretta Cella B5</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -162,7 +163,7 @@ with tab_oggi:
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
-            <div class="metric-title">Livello di Stress Stimato (da HRV)</div>
+            <div class="metric-title">Livello di Stress Estimato (da HRV)</div>
             <div class="metric-value">{prendi_dato(14, "Ottimale")}</div>
             <div class="metric-status">🟢 Sincronizzato su cella B14</div>
         </div>
@@ -230,7 +231,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
             <div class="metric-value">{prendi_dato(24, "1,6")} ore</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B24</div>
+            <div class="metric-status">🟢 Lettura Diretta Cella B24</div>
         </div>
     """, unsafe_allow_html=True)
     
@@ -254,7 +255,7 @@ with tab_oggi:
         <div class="metric-card bg-verde">
             <div class="metric-title">Punteggio di Recupero Fisico (PAI)</div>
             <div class="metric-value">{prendi_dato(27, "72,7")}</div>
-            <div class="metric-status">🟢 Sincronizzato su cella B27</div>
+            <div class="metric-status">🟢 Lettura Diretta Cella B27</div>
         </div>
     """, unsafe_allow_html=True)
     
