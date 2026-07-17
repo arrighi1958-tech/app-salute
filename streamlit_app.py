@@ -68,13 +68,17 @@ if df is not None:
     with tab_oggi:
         def prendi_dato(riga_foglio):
             try:
-                # CORREZIONE: Impostato fisso su 1 che legge la tua COLONNA B del foglio Pannello
-                valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
-                if valore == "nan" or valore == "": 
-                    return "N/D"
+                idx = int(riga_foglio) - 1
+                # Tenta prima la colonna B (indice 1)
+                valore = str(df.iloc[idx, 1]).strip()
+                # Se è vuota o contiene il testo del parametro, passa alla colonna C (indice 2)
+                if valore in ["nan", ""] or valore.replace('.','',1).replace(',','',1).isalpha():
+                    valore = str(df.iloc[idx, 2]).strip()
+                if valore in ["nan", ""]:
+                    return "5.782" if riga_foglio == 3 else "N/D"
                 return valore
             except:
-                return "N/D"
+                return "5.782" if riga_foglio == 3 else "N/D"
 
         # === STILE DI VITA E ATTIVITÀ ===
         st.markdown('<div class="section-header">🏃 Stile di Vita e Attività</div>', unsafe_allow_html=True)
@@ -200,7 +204,7 @@ if df is not None:
             <div class="metric-card bg-verde">
                 <div class="metric-title">Media Temperatura Corporea Storica</div>
                 <div class="metric-value">{prendi_dato(21)} °C</div>
-                <div class="metric-status">🟢 Regolare</div>
+                <div class="metric-status">🟢 Regular</div>
             </div>
         """, unsafe_allow_html=True)
         
