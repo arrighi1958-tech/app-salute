@@ -283,7 +283,8 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-with tab_medie:
-    st.info("📊 Sezione Medie Storiche attiva.")
-with tab_trend:
-    st.info("📈 Grafici di andamento settimanale pronti.")
+    # Correzione Chirurgica: ecco i 4 spazi aggiunti all'inizio di ogni riga!
+    with tab_medie:
+        st.info("📊 Sezione Medie Storiche attiva.")
+    with tab_trend:
+        st.info("📈 Grafici di andamento settimanale pronti.")
