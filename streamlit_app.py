@@ -2,9 +2,10 @@ import streamlit as st
 import pandas as pd
 import time
 
-# CODICE PIPPO - CONFIGURAZIONE GENERALE
+# CONFIGURAZIONE GENERALE
 st.set_page_config(page_title="Pannello Salute Renato", page_icon="🩺", layout="centered")
 
+# STILI CSS PERSONALIZZATI
 st.markdown("""
     <style>
     .metric-card {
@@ -46,11 +47,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-CSV_URL = f"https://google.com{int(time.time())}"
+# URL DEL TUO GOOGLE FOGLIO CON AGGIUNTA DI TIMESTAMP DINAMICO PER FORZARE L'AGGIORNAMENTO
+BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=0&single=true&output=csv"
+CSV_URL = f"{BASE_URL}&cache_bypass={int(time.time())}"
 
-@st.cache_data(ttl=1)
+@st.cache_data(ttl=5)  # Controlla gli aggiornamenti sul foglio ogni 5 secondi
 def load_data():
     try:
+        # Carica il CSV senza considerare la prima riga come header (visto che parti da riga 1 con i dati)
         return pd.read_csv(CSV_URL, header=None)
     except Exception as e:
         return None
@@ -60,12 +64,17 @@ df = load_data()
 st.title("🩺 Cruscotto Salute Renato (PIPPO)")
 st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 
+if df is None:
+    st.error("⚠️ Impossibile collegarsi al Foglio Google. Verifica la tua connessione o la pubblicazione del link.")
+
 tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
 
 with tab_oggi:
     def prendi_riga_dinamica(riga_foglio, valore_di_prova):
         try:
             if df is not None:
+                # .iloc usa indici che partono da 0. La riga 3 del foglio corrisponde a indice 2.
+                # La colonna B corrisponde all'indice 1.
                 valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
                 if valore != "nan" and valore != "":
                     return valore
@@ -166,6 +175,7 @@ with tab_oggi:
             <div class="metric-status">🟢 Dinamico su cella B14</div>
         </div>
     """, unsafe_allow_html=True)
+
     # === QUALITÀ DEL SONNO E RECUPERO ===
     st.markdown('<div class="section-header">🌙 Qualità del Sonno e Recupero</div>', unsafe_allow_html=True)
     
