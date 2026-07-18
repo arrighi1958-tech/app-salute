@@ -47,7 +47,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# URL DEL TUO GOOGLE FOGLIO
+# URL DEL TUO GOOGLE FOGLIO (RIEPILOGO)
 BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=0&single=true&output=csv"
 CSV_URL = f"{BASE_URL}&cache_bypass={int(time.time())}"
 
@@ -66,43 +66,114 @@ st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 if df is None:
     st.error("⚠️ Impossibile collegarsi al Foglio Google.")
 
-tab_oggi, tab_diagnostica = st.tabs(["Oggi (DATI VIVI)", "🔍 Controlla Dati Importati"])
+tab_oggi, tab_medie = st.tabs(["Oggi (DATI VIVI)", "📊 Medie Storiche"])
+
+# Funzione sicura per estrarre il valore dalla colonna 1 (B) in base all'indice di riga di Python
+def ottieni_valore(indice_riga, valore_default):
+    try:
+        if df is not None:
+            valore = str(df.iloc[indice_riga, 1]).strip()
+            if valore != "nan" and valore != "" and valore != "None":
+                return valore
+    except:
+        pass
+    return valore_default
 
 with tab_oggi:
-    def prendi_riga_dinamica(riga_foglio, valore_di_prova):
-        try:
-            if df is not None:
-                valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
-                if valore != "nan" and valore != "":
-                    return valore
-            return str(valore_di_prova)
-        except:
-            return str(valore_di_prova)
-
     # === STILE DI VITA E ATTIVITÀ ===
     st.markdown('<div class="section-header">🏃 Stile di Vita e Attività</div>', unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Media Passi Settimanali</div>
-            <div class="metric-value">{prendi_riga_dinamica(3, "8.383")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B3</div>
+            <div class="metric-value">{ottieni_valore(2, "5.657")}</div>
+            <div class="metric-status">🟢 Preso in tempo reale dal foglio</div>
         </div>
     """, unsafe_allow_html=True)
     
     st.markdown(f"""
         <div class="metric-card bg-verde">
             <div class="metric-title">Giorni Totali Monitorati</div>
-            <div class="metric-value">{prendi_riga_dinamica(4, "12")} giorni</div>
-            <div class="metric-status">🟢 Dinamico su cella B4</div>
+            <div class="metric-value">{ottieni_valore(3, "18")} giorni</div>
+            <div class="metric-status">🟢 Conteggio complessivo dal foglio</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # === SALUTE DEL CUORE ===
+    st.markdown('<div class="section-header">❤️ Salute del Cuore</div>', unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">ℹ️ INDICE WITHINGS COMPOSITO</div>
+            <div class="metric-value">{ottieni_valore(4, "Cardio Ottimale")}</div>
+            <div class="metric-status">🟢 Stato di salute generale</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Frequenza Cardiaca Diurna</div>
+            <div class="metric-value">{ottieni_valore(6, "67")} bpm</div>
+            <div class="metric-status">🟢 Durante le ore di veglia</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Frequenza Battiti a Riposo (7gg)</div>
+            <div class="metric-value">{ottieni_valore(7, "52")} bpm</div>
+            <div class="metric-status">🟢 Battito cardiaco a riposo</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Variabilità Cardiaca (HRV) (7gg)</div>
+            <div class="metric-value">{ottieni_valore(8, "18")} ms</div>
+            <div class="metric-status">🟢 Indicatore del sistema nervoso autonomo</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+        <div class="metric-card bg-verde">
+            <div class="metric-title">Media Ossigeno nel Sangue (SpO2)</div>
+            <div class="metric-value">{ottieni_valore(9, "96,2")} %</div>
+            <div class="metric-status">🟢 Saturazione media rilevata</div>
         </div>
     """, unsafe_allow_html=True)
 
-with tab_diagnostica:
-    st.markdown('<div class="section-header">🔍 Esploratore delle colonne caricate</div>', unsafe_allow_html=True)
-    st.write("Ecco esattamente cosa sta leggendo Python dal tuo link in questo momento:")
+with tab_medie:
+    st.markdown('<div class="section-header">📊 Confronto e Indicatori Storici</div>', unsafe_allow_html=True)
+    st.write("Ecco una vista pulita delle principali medie aggregate calcolate nel tuo foglio di controllo:")
     
-    if df is not None:
-        # Mostra le prime righe del foglio caricato per capire la sua struttura
-        st.dataframe(df.head(10))
-        st.write(f"Dimensioni del foglio letto: **{df.shape[0]} righe** e **{df.shape[1]} colonne**.")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+            <div class="metric-card bg-verde">
+                <div class="metric-title">Passi Registrati</div>
+                <div class="metric-value">{ottieni_valore(2, "5.657")}</div>
+                <div class="metric-status">Livello di attività</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="metric-card bg-verde">
+                <div class="metric-title">Battito a Riposo</div>
+                <div class="metric-value">{ottieni_valore(7, "52")} bpm</div>
+                <div class="metric-status">Efficienza cardiaca</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+            <div class="metric-card bg-verde">
+                <div class="metric-title">Frequenza Diurna</div>
+                <div class="metric-value">{ottieni_valore(6, "67")} bpm</div>
+                <div class="metric-status">Media attiva</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="metric-card bg-giallo">
+                <div class="metric-title">Ossigenazione (SpO2)</div>
+                <div class="metric-value">{ottieni_valore(9, "96,2")} %</div>
+                <div class="metric-status">Livello respiratorio</div>
+            </div>
+        """, unsafe_allow_html=True)
