@@ -47,11 +47,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# URL DEL TUO GOOGLE FOGLIO CON AGGIUNTA DI TIMESTAMP DINAMICO PER FORZARE L'AGGIORNAMENTO
+# URL DEL TUO GOOGLE FOGLIO
 BASE_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=0&single=true&output=csv"
 CSV_URL = f"{BASE_URL}&cache_bypass={int(time.time())}"
 
-@st.cache_data(ttl=5)  # Controlla gli aggiornamenti sul foglio ogni 5 secondi
+@st.cache_data(ttl=5)
 def load_data():
     try:
         return pd.read_csv(CSV_URL, header=None)
@@ -64,9 +64,9 @@ st.title("🩺 Cruscotto Salute Renato (PIPPO)")
 st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 
 if df is None:
-    st.error("⚠️ Impossibile collegarsi al Foglio Google. Verifica la tua connessione o la pubblicazione del link.")
+    st.error("⚠️ Impossibile collegarsi al Foglio Google.")
 
-tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
+tab_oggi, tab_diagnostica = st.tabs(["Oggi (DATI VIVI)", "🔍 Controlla Dati Importati"])
 
 with tab_oggi:
     def prendi_riga_dinamica(riga_foglio, valore_di_prova):
@@ -97,291 +97,12 @@ with tab_oggi:
             <div class="metric-status">🟢 Dinamico su cella B4</div>
         </div>
     """, unsafe_allow_html=True)
-    
-    # === SALUTE DEL CUORE ===
-    st.markdown('<div class="section-header">❤️ Salute del Cuore</div>', unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">ℹ️ INDICE WITHINGS COMPOSITO</div>
-            <div class="metric-value">{prendi_riga_dinamica(5, "Cardio Ottimale")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B5</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Frequenza Cardiaca Diurna</div>
-            <div class="metric-value">{prendi_riga_dinamica(7, "67")} bpm</div>
-            <div class="metric-status">🟢 Dinamico su cella B7</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Frequenza Battiti a Riposo (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(8, "52")} bpm</div>
-            <div class="metric-status">🟢 Dinamico su cella B8</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Variabilità Cardiaca (HRV) (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(9, "18")} ms</div>
-            <div class="metric-status">🟢 Dinamico su cella B9</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Ossigeno nel Sangue (SpO2)</div>
-            <div class="metric-value">{prendi_riga_dinamica(10, "96,2")} %</div>
-            <div class="metric-status">🟢 Dinamico su cella B10</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-giallo">
-            <div class="metric-title">Media Pressione Sistolica (Massima)</div>
-            <div class="metric-value">{prendi_riga_dinamica(11, "101")} mmHg</div>
-            <div class="metric-status">🟡 Dinamico su cella B11</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Pressione Diastolica (Minima)</div>
-            <div class="metric-value">{prendi_riga_dinamica(12, "70")} mmHg</div>
-            <div class="metric-status">🟢 Dinamico su cella B12</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Ultimo Esito ECG Registrato</div>
-            <div class="metric-value">{prendi_riga_dinamica(13, "ARITMIA")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B13</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Livello di Stress Estimato (da HRV)</div>
-            <div class="metric-value">{prendi_riga_dinamica(14, "Ottimale")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B14</div>
-        </div>
-    """, unsafe_allow_html=True)
 
-    # === QUALITÀ DEL SONNO E RECUPERO ===
-    st.markdown('<div class="section-header">🌙 Qualità del Sonno e Recupero</div>', unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-rosso">
-            <div class="metric-title">Media Ore di Sonno (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(17, "5,86")} ore</div>
-            <div class="metric-status">🔴 Dinamico su cella B17</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-giallo">
-            <div class="metric-title">Media Punteggio Sonno Storico</div>
-            <div class="metric-value">{prendi_riga_dinamica(18, "64")} / 100</div>
-            <div class="metric-status">🟡 Dinamico su cella B18</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Risvegli Notturni (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(19, "3,2")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B19</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-giallo">
-            <div class="metric-title">Efficienza del Sonno Media (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(20, "63,53 %")}</div>
-            <div class="metric-status">🟡 Dinamico su cella B20</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Temperatura Corporea Storica</div>
-            <div class="metric-value">{prendi_riga_dinamica(21, "36,41")} °C</div>
-            <div class="metric-status">🟢 Dinamico su cella B21</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Valutazione della Qualità Respiratoria</div>
-            <div class="metric-value">{prendi_riga_dinamica(22, "Ottimale")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B22</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-giallo">
-            <div class="metric-title">Stato Regolarità Ritmo Circadiano</div>
-            <div class="metric-value">{prendi_riga_dinamica(23, "Cattivo")}</div>
-            <div class="metric-status">🟡 Dinamico su cella B23</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Ore Sonno Profondo (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(24, "1,6")} ore</div>
-            <div class="metric-status">🟢 Dinamico su cella B24</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Frequenza Respiratoria Notturna</div>
-            <div class="metric-value">{prendi_riga_dinamica(25, "16")} bpm</div>
-            <div class="metric-status">🟢 Dinamico su cella B25</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Rapporto Recupero HRV (Fine vs Inizio)</div>
-            <div class="metric-value">{prendi_riga_dinamica(26, "2,8")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B26</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Punteggio di Recupero Fisico (PAI)</div>
-            <div class="metric-value">{prendi_riga_dinamica(27, "72,7")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B27</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-giallo">
-            <div class="metric-title">Punteggio di Recupero Mentale</div>
-            <div class="metric-value">{prendi_riga_dinamica(28, "54")} / 100</div>
-            <div class="metric-status">🟡 Dinamico su cella B28</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Monitoraggio Rischio Apnea Notturna</div>
-            <div class="metric-value">{prendi_riga_dinamica(29, "Basso")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B29</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-rosso">
-            <div class="metric-title">Picco Frequenza Cardiaca Massima (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(30, "137")} bpm</div>
-            <div class="metric-status">🔴 Dinamico su cella B30</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
-            <div class="metric-value">{prendi_riga_dinamica(31, "6,5")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B31</div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown(f"""
-        <div class="metric-card bg-verde">
-            <div class="metric-title">Monitoraggio Parametro Aggiuntivo</div>
-            <div class="metric-value">{prendi_riga_dinamica(32, "Attivo")}</div>
-            <div class="metric-status">🟢 Dinamico su cella B32</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-with tab_medie:
-    st.markdown('<div class="section-header">📊 Le Tue Medie Storiche Complessive</div>', unsafe_allow_html=True)
-    st.write("Valori medi calcolati analizzando l'intero storico dei tuoi giorni registrati.")
-
-    if df is not None:
-        try:
-            # Pulizia profonda: convertiamo in numeri forzando gli errori a NaN, eliminiamo i NaN e calcoliamo la media
-            passi_clean = pd.to_numeric(df.iloc[1:, 23], errors='coerce').dropna()
-            sonno_clean = pd.to_numeric(df.iloc[1:, 1], errors='coerce').dropna()
-            sistole_clean = pd.to_numeric(df.iloc[1:, 19], errors='coerce').dropna()
-            diastole_clean = pd.to_numeric(df.iloc[1:, 20], errors='coerce').dropna()
-
-            media_passi = int(passi_clean.mean()) if not passi_clean.empty else 0
-            media_sonno = int(sonno_clean.mean()) if not sonno_clean.empty else 0
-            media_sistole = int(sistole_clean.mean()) if not sistole_clean.empty else 0
-            media_diastole = int(diastole_clean.mean()) if not diastole_clean.empty else 0
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown(f"""
-                    <div class="metric-card bg-verde">
-                        <div class="metric-title">Media Passi Storica</div>
-                        <div class="metric-value">{media_passi:,}</div>
-                        <div class="metric-status">🏃 Passi medi al giorno</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown(f"""
-                    <div class="metric-card bg-giallo">
-                        <div class="metric-title">Media Pressione Massima</div>
-                        <div class="metric-value">{media_sistole} mmHg</div>
-                        <div class="metric-status">🩺 Sistolica media</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-            with col2:
-                st.markdown(f"""
-                    <div class="metric-card bg-verde">
-                        <div class="metric-title">Media Punteggio Sonno</div>
-                        <div class="metric-value">{media_sonno} / 100</div>
-                        <div class="metric-status">🌙 Qualità del riposo media</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown(f"""
-                    <div class="metric-card bg-verde">
-                        <div class="metric-title">Media Pressione Minima</div>
-                        <div class="metric-value">{media_diastole} mmHg</div>
-                        <div class="metric-status">🩺 Diastolica media</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-        except Exception as e:
-            st.warning(f"Errore di calcolo: {e}")
-
-with tab_trend:
-    st.markdown('<div class="section-header">📈 Trend e Andamento Temporale</div>', unsafe_allow_html=True)
+with tab_diagnostica:
+    st.markdown('<div class="section-header">🔍 Esploratore delle colonne caricate</div>', unsafe_allow_html=True)
+    st.write("Ecco esattamente cosa sta leggendo Python dal tuo link in questo momento:")
     
     if df is not None:
-        try:
-            # Costruiamo il dataframe pulito saltando le righe non numeriche
-            df_trend = pd.DataFrame({
-                'Data': df.iloc[1:, 0].astype(str),
-                'Passi': pd.to_numeric(df.iloc[1:, 23], errors='coerce'),
-                'Punteggio Sonno': pd.to_numeric(df.iloc[1:, 1], errors='coerce'),
-                'Sistole (Massima)': pd.to_numeric(df.iloc[1:, 19], errors='coerce'),
-                'Diastole (Minima)': pd.to_numeric(df.iloc[1:, 20], errors='coerce')
-            }).dropna(subset=['Passi', 'Punteggio Sonno']) # Evita crash se ci sono righe vuote alla fine
-            
-            st.subheader("🏃 Andamento Passi Giornalieri")
-            st.line_chart(df_trend, x='Data', y='Passi', color="#2ECC71")
-            
-            st.subheader("🌙 Evoluzione Qualità del Sonno")
-            st.line_chart(df_trend, x='Data', y='Punteggio Sonno', color="#1A5276")
-            
-            st.subheader("🩺 Andamento Pressione Arteriosa")
-            st.line_chart(df_trend, x='Data', y=['Sistole (Massima)', 'Diastole (Minima)'], color=["#E74C3C", "#F1C40F"])
-            
-        except Exception as e:
-            st.error(f"Errore nella generazione dei grafici: {e}")
+        # Mostra le prime righe del foglio caricato per capire la sua struttura
+        st.dataframe(df.head(10))
+        st.write(f"Dimensioni del foglio letto: **{df.shape[0]} righe** e **{df.shape[1]} colonne**.")
