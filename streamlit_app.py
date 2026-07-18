@@ -310,10 +310,16 @@ with tab_medie:
 
     if df is not None:
         try:
-            media_passi = int(pd.to_numeric(df.iloc[1:, 23], errors='coerce').mean())
-            media_sonno = int(pd.to_numeric(df.iloc[1:, 1], errors='coerce').mean())
-            media_sistole = int(pd.to_numeric(df.iloc[1:, 19], errors='coerce').mean())
-            media_diastole = int(pd.to_numeric(df.iloc[1:, 20], errors='coerce').mean())
+            # Pulizia profonda: convertiamo in numeri forzando gli errori a NaN, eliminiamo i NaN e calcoliamo la media
+            passi_clean = pd.to_numeric(df.iloc[1:, 23], errors='coerce').dropna()
+            sonno_clean = pd.to_numeric(df.iloc[1:, 1], errors='coerce').dropna()
+            sistole_clean = pd.to_numeric(df.iloc[1:, 19], errors='coerce').dropna()
+            diastole_clean = pd.to_numeric(df.iloc[1:, 20], errors='coerce').dropna()
+
+            media_passi = int(passi_clean.mean()) if not passi_clean.empty else 0
+            media_sonno = int(sonno_clean.mean()) if not sonno_clean.empty else 0
+            media_sistole = int(sistole_clean.mean()) if not sistole_clean.empty else 0
+            media_diastole = int(diastole_clean.mean()) if not diastole_clean.empty else 0
             
             col1, col2 = st.columns(2)
             
@@ -352,20 +358,21 @@ with tab_medie:
                 """, unsafe_allow_html=True)
                 
         except Exception as e:
-            st.warning("Nota: Verifica i dati sul foglio.")
+            st.warning(f"Errore di calcolo: {e}")
 
 with tab_trend:
     st.markdown('<div class="section-header">📈 Trend e Andamento Temporale</div>', unsafe_allow_html=True)
     
     if df is not None:
         try:
+            # Costruiamo il dataframe pulito saltando le righe non numeriche
             df_trend = pd.DataFrame({
                 'Data': df.iloc[1:, 0].astype(str),
                 'Passi': pd.to_numeric(df.iloc[1:, 23], errors='coerce'),
                 'Punteggio Sonno': pd.to_numeric(df.iloc[1:, 1], errors='coerce'),
                 'Sistole (Massima)': pd.to_numeric(df.iloc[1:, 19], errors='coerce'),
                 'Diastole (Minima)': pd.to_numeric(df.iloc[1:, 20], errors='coerce')
-            }).dropna()
+            }).dropna(subset=['Passi', 'Punteggio Sonno']) # Evita crash se ci sono righe vuote alla fine
             
             st.subheader("🏃 Andamento Passi Giornalieri")
             st.line_chart(df_trend, x='Data', y='Passi', color="#2ECC71")
