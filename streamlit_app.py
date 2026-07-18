@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 
-# Configurazione della pagina per il Samsung A17
+# CODICE PIPPO - CONFIGURAZIONE GENERALE
 st.set_page_config(page_title="Pannello Salute Renato", page_icon="🩺", layout="centered")
 
 st.markdown("""
@@ -57,7 +57,7 @@ def load_data():
 
 df = load_data()
 
-st.title("🩺 Cruscotto Salute Renato")
+st.title("🩺 Cruscotto Salute Renato (PIPPO)")
 st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 
 tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
