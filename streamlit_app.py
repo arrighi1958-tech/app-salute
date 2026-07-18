@@ -79,8 +79,9 @@ df_cron = load_cronologia()
 st.title("🩺 Cruscotto Salute Renato (PIPPO)")
 st.write("Vista unica continua ottimizzata per cellulare")
 
-if df_riep is None or df_cron is None:
-    st.error("⚠️ Errore nel caricamento dei dati. Controlla la connessione.")
+# Controllo separato e meno invasivo
+if df_riep is None:
+    st.warning("⚠️ Impossibile aggiornare i dati in tempo reale. Mostro i dati memorizzati.")
 
 # Funzione per estrarre valori dal foglio riepilogo
 def ottieni_valore_riep(indice_riga, valore_default):
@@ -142,3 +143,5 @@ if df_cron is not None:
     pulisci_e_grafica('temperatura del sonno', '🌡️ Temperatura Basale Notturna', '#E67E22')
     pulisci_e_grafica('Ore_CPAP', '💨 Utilizzo CPAP (Ore)', '#1ABC9C')
     pulisci_e_grafica('passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
+else:
+    st.info("ℹ️ I grafici storici saranno visibili non appena il foglio cronologico avrà completato il caricamento.")
