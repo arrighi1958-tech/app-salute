@@ -86,61 +86,62 @@ df_riep = load_riepilogo()
 df_cron = load_cronologia()
 
 st.title("🩺 Cruscotto Salute Renato")
-st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante.</div>', unsafe_allow_html=True)
+st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante permanentemente.</div>', unsafe_allow_html=True)
 
-# Funzione per estrarre valori in modo sicuro
-def ottieni_valore_riep(indice_riga, valore_default):
+# Funzione per estrarre valori associando correttamente la riga Excel (indice Excel - 1)
+def ottieni_valore_riep(riga_excel, valore_default):
     try:
         if df_riep is not None:
-            valore = str(df_riep.iloc[indice_riga, 1]).strip()
+            indice_python = riga_excel - 1
+            valore = str(df_riep.iloc[indice_python, 1]).strip()
             if valore != "nan" and valore != "" and valore != "None":
                 return valore
     except: pass
     return valore_default
 
-# ==================== SEZIONE 1: MEDIE STORICHE E COMPLESSIVE ====================
+# ==================== SEZIONE 1: MEDIE STORICHE DI CONTROLLO ====================
 st.markdown('<div class="section-header">📊 Medie Storiche di Controllo (Orizzonte Complessivo)</div>', unsafe_allow_html=True)
 
-st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(10, "102")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(11, "70")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Frequenza Cardiaca Media a Riposo</div><div class="metric-value">{ottieni_valore_riep(7, "52")} bpm</div><div class="metric-status">Verifica tolleranza Betabloccante M/S</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Risvegli Notturni</div><div class="metric-value">{ottieni_valore_riep(18, "3.1")}</div><div class="metric-status">Indice nicturia / disturbi urinari da prostata</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna (SpO2)</div><div class="metric-value">{ottieni_valore_riep(9, "96.2")} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Giorni Totali Monitorati nel Report</div><div class="metric-value">{ottieni_valore_riep(3, "18")} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(11, "102")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(12, "70")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Frequenza Cardiaca Media a Riposo (7gg)</div><div class="metric-value">{ottieni_valore_riep(8, "52")} bpm</div><div class="metric-status">Verifica tolleranza Betabloccante M/S</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Risvegli Notturni (7gg)</div><div class="metric-value">{ottieni_valore_riep(19, "3,1")}</div><div class="metric-status">Indice nicturia / disturbi urinari da prostata</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna (SpO2)</div><div class="metric-value">{ottieni_valore_riep(10, "96,2")} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero Giorni Analizzati</div><div class="metric-value">{ottieni_valore_riep(4, "18")} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
 
 
-# ==================== SEZIONE 2: I 28 PARAMETRI PUNTUALI ====================
-st.markdown('<div class="section-header">📋 Elenco Completo dei 28 Parametri Analizzati</div>', unsafe_allow_html=True)
+# ==================== SEZIONE 2: I PARAMETRI REALI DIRETTI (28 INDICI) ====================
+st.markdown('<div class="section-header">📋 Elenco Completo dei Parametri Analizzati</div>', unsafe_allow_html=True)
 
+# Mappatura rigorosa basata sul foglio Excel reale inviato nello screenshot
 parametri = [
-    (2, "Media Passi Settimanali", "bg-verde", "Attività fisica complessiva"),
-    (3, "Giorni Monitorati", "bg-blu", "Giorni totali"),
-    (4, "Indice Withings Composito", "bg-verde", "Stato calcolato dall'orologio"),
-    (5, "Punteggio Sonno", "bg-giallo", "Qualità globale del riposo"),
-    (6, "FC Media Sonno", "bg-verde", "Battiti medi notturni"),
-    (7, "FC a Riposo", "bg-verde", "Battiti minimi registrati"),
-    (8, "HRV Sonno", "bg-blu", "Variabilità frequenza cardiaca"),
-    (9, "SpO2 Media Sonno", "bg-verde", "Saturazione ossigeno"),
-    (10, "Pressione Sistolica", "bg-giallo", "Pressione massima"),
-    (11, "Pressione Diastolica", "bg-verde", "Pressione minima"),
-    (12, "Profondità Sonno Giudizio", "bg-blu", "Continuità del sonno"),
-    (13, "Sonno REM %", "bg-blu", "Percentuale fase REM"),
-    (14, "Sonno Profondo %", "bg-blu", "Percentuale fase profonda"),
-    (15, "Interruzioni Notturne Brevi", "bg-rosso", "Micro-risvegli stimate"),
-    (16, "HRV Primi 90 Minuti", "bg-verde", "Variabilità inizio sonno"),
-    (17, "HRV Ultimi 90 Minuti", "bg-verde", "Variabilità fine sonno"),
-    (18, "Risvegli Notturni", "bg-rosso", "Interruzioni prolungate complessive"),
-    (19, "Efficienza del Sonno", "bg-giallo", "Percentuale tempo di sonno effettivo"),
-    (20, "Temperatura del Sonno", "bg-verde", "Temperatura corporea basale"),
-    (21, "Frequenza Respiratoria", "bg-verde", "Atti respiratori al minuto"),
-    (22, "Qualità Respiratoria Giudizio", "bg-verde", "Regolarità del respiro"),
-    (23, "FC Diurna Media", "bg-giallo", "Battiti medi da sveglio"),
-    (24, "FC Diurna Minima", "bg-verde", "Battiti minimi da sveglio"),
-    (25, "FC Diurna Massima", "bg-rosso", "Battiti massimi da sveglio"),
-    (26, "Ore CPAP", "bg-blu", "Tempo utilizzo ventilatore"),
-    (27, "Ore Sonno Profondo (Decimale)", "bg-blu", "Sonno profondo espresso in ore"),
-    (28, "Ore CPAP (Decimale)", "bg-blu", "Utilizzo CPAP espresso in ore"),
-    (29, "Target Attività Raggiunto", "bg-verde", "Raggiungimento obiettivo passi")
+    (3, "Passi", "bg-verde", "Stile di Vita e Attività"),
+    (4, "Numero Giorni Analizzati", "bg-blu", "Giorni totali"),
+    (5, "Indice Withings Composito", "bg-verde", "Stato calcolato dall'orologio"),
+    (7, "FC Tempo Medio Sveglio (Diurna)", "bg-giallo", "Frequenza Cardiaca Diurna"),
+    (8, "FC Media Durante il Sonno (Riposo)", "bg-verde", "Effetto farmaci / battiti minimi"),
+    (9, "HRV Durante il Sonno (7gg)", "bg-blu", "Variabilità della frequenza cardiaca"),
+    (10, "SpO2 Media Durante il Sonno (7gg)", "bg-verde", "Saturazione ossigeno nel sangue"),
+    (11, "Pressione Sistolica (Massima)", "bg-giallo", "Media pressione sistolica"),
+    (12, "Pressione Diastolica (Minima)", "bg-verde", "Media pressione diastolica"),
+    (13, "ECG Ultimo Esito", "bg-blu", "Stato tracciato cardiaco"),
+    (14, "Livello di Stress Stimato", "bg-blu", "Valutazione da HRV"),
+    (17, "Media Ore di Sonno (7gg)", "bg-giallo", "Durata sonno globale"),
+    (18, "Media Punteggio Sonno Storico", "bg-giallo", "Punteggio di qualità generale"),
+    (19, "Interruzioni Notturne (Risvegli)", "bg-rosso", "Frequenza microrisvegli"),
+    (20, "Efficienza del Sonno Media (7gg)", "bg-giallo", "Punteggio di qualità del sonno (%)"),
+    (21, "Temperatura del Sonno Corporea", "bg-verde", "Media termica basale"),
+    (22, "Valutazione Qualità Respiratoria", "bg-verde", "Ultima valutazione registrata"),
+    (23, "Stato Regolarità Ritmo Circadiano", "bg-blu", "Profondità del sonno giudizio"),
+    (24, "Media Ore Sonno Profondo (7gg)", "bg-blu", "Valore espresso in ore decimali"),
+    (25, "Frequenza Respiratoria Notturna", "bg-verde", "Media atti respiratori (RPM)"),
+    (26, "Rapporto Recupero HRV (Fine vs Inizio)", "bg-blu", "Confronto primi/secondi 90 minuti"),
+    (27, "Punteggio di Recupero Fisico", "bg-verde", "Scala 0-100"),
+    (28, "Punteggio di Recupero Mentale", "bg-blu", "Scala 0-100"),
+    (29, "Monitoraggio Rischio Apnea Notturna", "bg-blu", "Rilevazione da sensori / CPAP"),
+    (30, "Picco Frequenza Cardiaca Massima (7gg)", "bg-rosso", "Massimo battito diurno registrato"),
+    (31, "Media Ore Utilizzo CPAP (7gg)", "bg-blu", "Tempo di utilizzo del ventilatore"),
+    (32, "Raggiungimento Obiettivi Attività", "bg-verde", "Target passi quotidiano")
 ]
 
 for riga, titolo, colore, nota in parametri:
