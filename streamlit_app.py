@@ -63,7 +63,6 @@ st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 tab_oggi, tab_medie, tab_trend = st.tabs(["Oggi (DATI VIVI)", "Medie Storiche", "Trend"])
 
 with tab_oggi:
-    # Il radar estrae l'ultima riga compilata della colonna B (indice 1) del tuo foglio Pannello
     def prendi_riga_dinamica(riga_foglio, valore_di_prova):
         try:
             if df is not None:
@@ -271,7 +270,7 @@ with tab_oggi:
                 <div class="metric-title">Monitoraggio Rischio Apnea Notturna</div>
                 <div class="metric-value">{prendi_riga_dinamica(29, "Basso")}</div>
                 <div class="metric-status">🟢 Dinamico su cella B29</div>
-        </div>
+            </div>
         """, unsafe_allow_html=True)
         
         st.markdown(f"""
@@ -285,7 +284,7 @@ with tab_oggi:
         st.markdown(f"""
             <div class="metric-card bg-verde">
                 <div class="metric-title">Media Ore Utilizzo CPAP (7gg)</div>
-                <div class="metric-value">{prendi_dato(31, "6,5")}</div>
+                <div class="metric-value">{prendi_riga_dinamica(31, "6,5")}</div>
                 <div class="metric-status">🟢 Dinamico su cella B31</div>
             </div>
         """, unsafe_allow_html=True)
@@ -298,7 +297,7 @@ with tab_oggi:
             </div>
         """, unsafe_allow_html=True)
 
-    with tab_medie:
-        st.info("📊 Sezione Medie Storiche attiva nella colonna Z e AA.")
-    with tab_trend:
-        st.info("📈 Grafici di andamento settimanale pronti.")
+with tab_medie:
+    st.info("📊 Sezione Medie Storiche attiva nella colonna Z e AA.")
+with tab_trend:
+    st.info("📈 Grafici di andamento settimanale pronti.")
