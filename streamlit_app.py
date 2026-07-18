@@ -66,9 +66,9 @@ st.write("Sincronizzato in tempo reale con il tuo Google Fogli")
 if df is None:
     st.error("⚠️ Impossibile collegarsi al Foglio Google.")
 
-tab_oggi, tab_medie = st.tabs(["Oggi (DATI VIVI)", "📊 Medie Storiche"])
+tab_oggi, tab_medie = st.tabs(["Oggi (DATI VIVI)", "📊 Medie Storiche Complete"])
 
-# Funzione sicura per estrarre il valore dalla colonna 1 (B) in base all'indice di riga di Python
+# Funzione sicura per estrarre il valore dalla colonna 1 (B)
 def ottieni_valore(indice_riga, valore_default):
     try:
         if df is not None:
@@ -143,37 +143,73 @@ with tab_oggi:
     """, unsafe_allow_html=True)
 
 with tab_medie:
-    st.markdown('<div class="section-header">📊 Confronto e Indicatori Storici</div>', unsafe_allow_html=True)
-    st.write("Ecco una vista pulita delle principali medie aggregate calcolate nel tuo foglio di controllo:")
+    st.markdown('<div class="section-header">📊 Quadro Generale delle Medie Storiche</div>', unsafe_allow_html=True)
+    st.write("Tutti i parametri aggregati estratti dal tuo storico per il monitoraggio clinico a lungo termine:")
     
+    # Sezione 1: Parametri Cardiovascolari (Priorità per Ipertensione e Betabloccanti)
+    st.markdown('### 🩺 Monitoraggio Cardio-Vascolare')
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(f"""
-            <div class="metric-card bg-verde">
-                <div class="metric-title">Passi Registrati</div>
-                <div class="metric-value">{ottieni_valore(2, "5.657")}</div>
-                <div class="metric-status">Livello di attività</div>
+            <div class="metric-card bg-giallo">
+                <div class="metric-title">Pressione Sistolica Media</div>
+                <div class="metric-value">{ottieni_valore(10, "101")} mmHg</div>
+                <div class="metric-status">Media Storica Massima (Target < 130-140)</div>
             </div>
         """, unsafe_allow_html=True)
         st.markdown(f"""
             <div class="metric-card bg-verde">
-                <div class="metric-title">Battito a Riposo</div>
+                <div class="metric-title">Battito Medio a Riposo</div>
                 <div class="metric-value">{ottieni_valore(7, "52")} bpm</div>
-                <div class="metric-status">Efficienza cardiaca</div>
+                <div class="metric-status">Effetto Betabloccante (Target stabile 50-60)</div>
             </div>
         """, unsafe_allow_html=True)
     with col2:
         st.markdown(f"""
             <div class="metric-card bg-verde">
-                <div class="metric-title">Frequenza Diurna</div>
-                <div class="metric-value">{ottieni_valore(6, "67")} bpm</div>
-                <div class="metric-status">Media attiva</div>
+                <div class="metric-title">Pressione Diastolica Media</div>
+                <div class="metric-value">{ottieni_valore(11, "70")} mmHg</div>
+                <div class="metric-status">Media Storica Minima (Target < 80-85)</div>
             </div>
         """, unsafe_allow_html=True)
         st.markdown(f"""
+            <div class="metric-card bg-verde">
+                <div class="metric-title">Variabilità Cardiaca (HRV)</div>
+                <div class="metric-value">{ottieni_valore(8, "18")} ms</div>
+                <div class="metric-status">Livello di recupero e stress cardiaco</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # Sezione 2: Parametri Riposo e Attività (Priorità per Sonno/Prostata e Circolazione)
+    st.markdown('### 🌙 Sonno, Prostata e Attività Fisica')
+    col3, col4 = st.columns(2)
+    with col3:
+        st.markdown(f"""
+            <div class="metric-card bg-rosso">
+                <div class="metric-title">Risvegli Notturni Medi</div>
+                <div class="metric-value">{ottieni_valore(18, "3,2")}</div>
+                <div class="metric-status">Indicatore disturbi (es. Prostata/Nicturia)</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="metric-card bg-verde">
+                <div class="metric-title">Passi Storici Medi</div>
+                <div class="metric-value">{ottieni_valore(2, "5.657")}</div>
+                <div class="metric-status">Attività motoria (Ottimo per fluidificanti)</div>
+            </div>
+        """, unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""
             <div class="metric-card bg-giallo">
-                <div class="metric-title">Ossigenazione (SpO2)</div>
-                <div class="metric-value">{ottieni_valore(9, "96,2")} %</div>
-                <div class="metric-status">Livello respiratorio</div>
+                <div class="metric-title">Efficienza del Sonno</div>
+                <div class="metric-value">{ottieni_valore(19, "63,53 %")}</div>
+                <div class="metric-status">Qualità reale del tempo passato a letto</div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="metric-card bg-verde">
+                <div class="metric-title">Temperatura Corporea</div>
+                <div class="metric-value">{ottieni_valore(20, "36,41")} °C</div>
+                <div class="metric-status">Media basale notturna</div>
             </div>
         """, unsafe_allow_html=True)
