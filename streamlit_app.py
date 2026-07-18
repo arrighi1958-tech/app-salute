@@ -54,7 +54,6 @@ CSV_URL = f"{BASE_URL}&cache_bypass={int(time.time())}"
 @st.cache_data(ttl=5)  # Controlla gli aggiornamenti sul foglio ogni 5 secondi
 def load_data():
     try:
-        # Carica il CSV senza considerare la prima riga come header (visto che parti da riga 1 con i dati)
         return pd.read_csv(CSV_URL, header=None)
     except Exception as e:
         return None
@@ -73,8 +72,6 @@ with tab_oggi:
     def prendi_riga_dinamica(riga_foglio, valore_di_prova):
         try:
             if df is not None:
-                # .iloc usa indici che partono da 0. La riga 3 del foglio corrisponde a indice 2.
-                # La colonna B corrisponde all'indice 1.
                 valore = str(df.iloc[int(riga_foglio) - 1, 1]).strip()
                 if valore != "nan" and valore != "":
                     return valore
@@ -308,6 +305,76 @@ with tab_oggi:
     """, unsafe_allow_html=True)
 
 with tab_medie:
-    st.info("📊 Sezione Medie Storiche attiva nella colonna Z e AA.")
+    st.markdown('<div class="section-header">📊 Le Tue Medie Storiche Complessive</div>', unsafe_allow_html=True)
+    st.write("Valori medi calcolati analizzando l'intero storico dei tuoi giorni registrati.")
+
+    if df is not None:
+        try:
+            media_passi = int(pd.to_numeric(df.iloc[1:, 23], errors='coerce').mean())
+            media_sonno = int(pd.to_numeric(df.iloc[1:, 1], errors='coerce').mean())
+            media_sistole = int(pd.to_numeric(df.iloc[1:, 19], errors='coerce').mean())
+            media_diastole = int(pd.to_numeric(df.iloc[1:, 20], errors='coerce').mean())
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown(f"""
+                    <div class="metric-card bg-verde">
+                        <div class="metric-title">Media Passi Storica</div>
+                        <div class="metric-value">{media_passi:,}</div>
+                        <div class="metric-status">🏃 Passi medi al giorno</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(f"""
+                    <div class="metric-card bg-giallo">
+                        <div class="metric-title">Media Pressione Massima</div>
+                        <div class="metric-value">{media_sistole} mmHg</div>
+                        <div class="metric-status">🩺 Sistolica media</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            with col2:
+                st.markdown(f"""
+                    <div class="metric-card bg-verde">
+                        <div class="metric-title">Media Punteggio Sonno</div>
+                        <div class="metric-value">{media_sonno} / 100</div>
+                        <div class="metric-status">🌙 Qualità del riposo media</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(f"""
+                    <div class="metric-card bg-verde">
+                        <div class="metric-title">Media Pressione Minima</div>
+                        <div class="metric-value">{media_diastole} mmHg</div>
+                        <div class="metric-status">🩺 Diastolica media</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+        except Exception as e:
+            st.warning("Nota: Verifica i dati sul foglio.")
+
 with tab_trend:
-    st.info("📈 Grafici di andamento settimanale pronti.")
+    st.markdown('<div class="section-header">📈 Trend e Andamento Temporale</div>', unsafe_allow_html=True)
+    
+    if df is not None:
+        try:
+            df_trend = pd.DataFrame({
+                'Data': df.iloc[1:, 0].astype(str),
+                'Passi': pd.to_numeric(df.iloc[1:, 23], errors='coerce'),
+                'Punteggio Sonno': pd.to_numeric(df.iloc[1:, 1], errors='coerce'),
+                'Sistole (Massima)': pd.to_numeric(df.iloc[1:, 19], errors='coerce'),
+                'Diastole (Minima)': pd.to_numeric(df.iloc[1:, 20], errors='coerce')
+            }).dropna()
+            
+            st.subheader("🏃 Andamento Passi Giornalieri")
+            st.line_chart(df_trend, x='Data', y='Passi', color="#2ECC71")
+            
+            st.subheader("🌙 Evoluzione Qualità del Sonno")
+            st.line_chart(df_trend, x='Data', y='Punteggio Sonno', color="#1A5276")
+            
+            st.subheader("🩺 Andamento Pressione Arteriosa")
+            st.line_chart(df_trend, x='Data', y=['Sistole (Massima)', 'Diastole (Minima)'], color=["#E74C3C", "#F1C40F"])
+            
+        except Exception as e:
+            st.error(f"Errore nella generazione dei grafici: {e}")
