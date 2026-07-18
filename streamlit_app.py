@@ -86,9 +86,9 @@ df_riep = load_riepilogo()
 df_cron = load_cronologia()
 
 st.title("🩺 Cruscotto Salute Renato")
-st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante permanentemente.</div>', unsafe_allow_html=True)
+st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante permanente. Soglia minima FC impostata per controllo Bradicardia.</div>', unsafe_allow_html=True)
 
-# Funzione per estrarre valori associando correttamente la riga Excel (indice Excel - 1)
+# Funzione per estrarre valori in modo sicuro
 def ottieni_valore_riep(riga_excel, valore_default):
     try:
         if df_riep is not None:
@@ -104,7 +104,19 @@ st.markdown('<div class="section-header">📊 Medie Storiche di Controllo (Orizz
 
 st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(11, "102")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(12, "70")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Frequenza Cardiaca Media a Riposo (7gg)</div><div class="metric-value">{ottieni_valore_riep(8, "52")} bpm</div><div class="metric-status">Verifica tolleranza Betabloccante M/S</div></div>', unsafe_allow_html=True)
+
+# Controllo dinamico colore FC a Riposo per Bradicardia
+fc_riposo_val = ottieni_valore_riep(8, "52")
+colore_fc = "bg-verde"
+nota_fc = "Verifica tolleranza Betabloccante M/S"
+try:
+    fc_num = float(fc_riposo_val.replace(',', '.'))
+    if fc_num < 48:
+        colore_fc = "bg-rosso"
+        nota_fc = "⚠️ ATTENZIONE: Frequenza bassa (Possibile Bradicardia da Betabloccante)"
+except: pass
+
+st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Media a Riposo (7gg)</div><div class="metric-value">{fc_riposo_val} bpm</div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Risvegli Notturni (7gg)</div><div class="metric-value">{ottieni_valore_riep(19, "3,1")}</div><div class="metric-status">Indice nicturia / disturbi urinari da prostata</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna (SpO2)</div><div class="metric-value">{ottieni_valore_riep(10, "96,2")} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero Giorni Analizzati</div><div class="metric-value">{ottieni_valore_riep(4, "18")} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
@@ -113,11 +125,11 @@ st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero G
 # ==================== SEZIONE 2: I PARAMETRI REALI DIRETTI (28 INDICI) ====================
 st.markdown('<div class="section-header">📋 Elenco Completo dei Parametri Analizzati</div>', unsafe_allow_html=True)
 
-# Mappatura rigorosa basata sul foglio Excel reale inviato nello screenshot
+# Mappatura basata sul foglio Excel reale
 parametri = [
     (3, "Passi", "bg-verde", "Stile di Vita e Attività"),
     (4, "Numero Giorni Analizzati", "bg-blu", "Giorni totali"),
-    (5, "Indice Withings Composito", "bg-verde", "Stato calcolato dall'orologio"),
+    (5, "Indice Withings Composito", "bg-verde", "Stato calcolato dall'orologio (Algoritmo Personalizzato)"),
     (7, "FC Tempo Medio Sveglio (Diurna)", "bg-giallo", "Frequenza Cardiaca Diurna"),
     (8, "FC Media Durante il Sonno (Riposo)", "bg-verde", "Effetto farmaci / battiti minimi"),
     (9, "HRV Durante il Sonno (7gg)", "bg-blu", "Variabilità della frequenza cardiaca"),
@@ -146,6 +158,11 @@ parametri = [
 
 for riga, titolo, colore, nota in parametri:
     valore_mostrato = ottieni_valore_riep(riga, "--")
+    
+    # Se l'indice Withings restituisce un avviso di monitoraggio, cambia colore dinamicamente
+    if riga == 5 and "Monitorare" in valore_mostrato:
+        colore = "bg-rosso"
+        
     st.markdown(f'''
         <div class="metric-card {colore}">
             <div class="metric-title">{titolo}</div>
