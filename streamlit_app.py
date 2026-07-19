@@ -224,7 +224,8 @@ for riga, titolo, colore, nota in parametri:
 
 # ==================== SEZIONE 3: ANDAMENTI CRONOLOGICI ====================
 st.markdown('<div class="section-header">📈 Grafici di Tendenza Temporale</div>', unsafe_allow_html=True)
-
+if df_cron is not None:
+    st.write("Le tue colonne sono:", list(df_cron.columns))
 if df_cron is not None:
     data_col = df_cron.columns[0]
     
