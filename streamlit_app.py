@@ -55,6 +55,29 @@ st.markdown("""
     .bg-giallo { border-left-color: #F1C40F !important; color: #D4AC0D; }
     .bg-rosso { border-left-color: #E74C3C !important; color: #C0392B; }
     .bg-blu { border-left-color: #3498DB !important; color: #2980B9; }
+    
+    /* Stile speciale per il Punteggio in cima */
+    .punteggio-card {
+        background-color: #fcfcfc;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+        text-align: center;
+        border: 3px solid #cccccc;
+    }
+    .punteggio-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333333;
+    }
+    .punteggio-value {
+        font-size: 42px;
+        font-weight: 900;
+    }
+    .border-verde { border-color: #2ECC71 !important; color: #27AE60; }
+    .border-giallo { border-color: #F1C40F !important; color: #D4AC0D; }
+    .border-rosso { border-color: #E74C3C !important; color: #C0392B; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -99,6 +122,28 @@ def ottieni_valore_riep(riga_excel, valore_default):
     except: pass
     return valore_default
 
+# ==================== NUOVO: PUNTEGGIO DI SALUTE ODIERNO (CELLA B5) ====================
+punteggio_val = ottieni_valore_riep(5, "70,0")
+
+# Logica di colorazione dinamica (Verde, Giallo, Rosso) basata sulla formattazione condizionale
+classe_punteggio = "border-giallo"
+try:
+    punteggio_num = float(punteggio_val.replace(',', '.'))
+    if punteggio_num >= 70.0:
+        classe_punteggio = "border-verde"
+    elif punteggio_num <= 30.0:
+        classe_punteggio = "border-rosso"
+except: pass
+
+st.markdown(f'''
+    <div class="punteggio-card {classe_punteggio}">
+        <div class="punteggio-title">🎯 PUNTEGGIO DI SALUTE ODIERNO</div>
+        <div class="punteggio-value">{punteggio_val} <span style="font-size:20px; font-weight:500; color:#666;">/ 100</span></div>
+        <div style="font-size: 12px; margin-top: 5px; font-weight: bold;">Indice generale calcolato dall'ultimo inserimento dati</div>
+    </div>
+''', unsafe_allow_html=True)
+
+
 # ==================== SEZIONE 1: MEDIE STORICHE DI CONTROLLO ====================
 st.markdown('<div class="section-header">📊 Medie Storiche di Controllo (Orizzonte Complessivo)</div>', unsafe_allow_html=True)
 
@@ -125,17 +170,17 @@ st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero G
 # ==================== SEZIONE 2: I PARAMETRI REALI DIRETTI (28 INDICI) ====================
 st.markdown('<div class="section-header">📋 Elenco Completo dei Parametri Analizzati</div>', unsafe_allow_html=True)
 
-# Mappatura basata sul foglio Excel reale
+# Mappatura basata sul foglio Excel reale (28 parametri totali elencati sotto)
 parametri = [
     (3, "Passi", "bg-verde", "Stile di Vita e Attività"),
     (4, "Numero Giorni Analizzati", "bg-blu", "Giorni totali"),
-    (5, "Indice Withings Composito", "bg-verde", "Stato calcolato dall'orologio (Algoritmo Personalizzato)"),
+    (5, "Punticcio di Saluti Odierno (Valore Cella)", "bg-verde", "Indice di Salute Olistico calcolato"),
     (7, "FC Tempo Medio Sveglio (Diurna)", "bg-giallo", "Frequenza Cardiaca Diurna"),
     (8, "FC Media Durante il Sonno (Riposo)", "bg-verde", "Effetto farmaci / battiti minimi"),
     (9, "HRV Durante il Sonno (7gg)", "bg-blu", "Variabilità della frequenza cardiaca"),
     (10, "SpO2 Media Durante il Sonno (7gg)", "bg-verde", "Saturazione ossigeno nel sangue"),
     (11, "Pressione Sistolica (Massima)", "bg-giallo", "Media pressione sistolica"),
-    (12, "Pressione Diastolica (Minima)", "bg-verde", "Media pressione diastolica"),
+    (12, "Pressione Diastolica (Minima)", "bg-verde", "Media pressione diolica"),
     (13, "ECG Ultimo Esito", "bg-blu", "Stato tracciato cardiaco"),
     (14, "Livello di Stress Stimato", "bg-blu", "Valutazione da HRV"),
     (17, "Media Ore di Sonno (7gg)", "bg-giallo", "Durata sonno globale"),
@@ -159,9 +204,14 @@ parametri = [
 for riga, titolo, colore, nota in parametri:
     valore_mostrato = ottieni_valore_riep(riga, "--")
     
-    # Se l'indice Withings restituisce un avviso di monitoraggio, cambia colore dinamicamente
-    if riga == 5 and "Monitorare" in valore_mostrato:
-        colore = "bg-rosso"
+    # Adattamento cromatico automatico anche nel bottone interno se scende sotto una certa soglia
+    if riga == 5:
+        try:
+            val_num = float(valore_mostrato.replace(',', '.'))
+            if val_num >= 70.0: colore = "bg-verde"
+            elif val_num <= 30.0: colore = "bg-rosso"
+            else: colore = "bg-giallo"
+        except: pass
         
     st.markdown(f'''
         <div class="metric-card {colore}">
@@ -189,11 +239,11 @@ if df_cron is not None:
                 fig.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig, use_container_width=True)
 
-    pulisci_e_grafica('sistole', '🩺 Trend Pressione Massima (Sistole)', '#E74C3C')
-    pulisci_e_grafica('diastole', '🩺 Trend Pressione Minima (Diastole)', '#3498DB')
-    pulisci_e_grafica('FC a riposo', '❤️ Trend Frequenza Cardiaca a Riposo', '#2ECC71')
-    pulisci_e_grafica('frequenza respiratoria', '🫁 Frequenza Respiratoria Notturna', '#9B59B6')
-    pulisci_e_grafica('SpO2 media durante il sonno', '🩸 Saturazione Ossigeno Notturna', '#F1C40F')
-    pulisci_e_grafica('temperatura del sonno', '🌡️ Temperatura Basale Notturna', '#E67E22')
-    pulisci_e_grafica('Ore_CPAP', '💨 Utilizzo CPAP (Ore)', '#1ABC9C')
-    pulisci_e_grafica('passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
+    puliisci_e_grafica('sistole', '🩺 Trend Pressione Massima (Sistole)', '#E74C3C')
+    puliisci_e_grafica('diastole', '🩺 Trend Pressione Minima (Diastole)', '#3498DB')
+    puliisci_e_grafica('FC a riposo', '❤️ Trend Frequenza Cardiaca a Riposo', '#2ECC71')
+    puliisci_e_grafica('frequenza respiratoria', '🫁 Frequenza Respiratoria Notturna', '#9B59B6')
+    puliisci_e_grafica('SpO2 media durante il sonno', '🩸 Saturazione Ossigeno Notturna', '#F1C40F')
+    puliisci_e_grafica('temperatura del sonno', '🌡️ Temperatura Basale Notturna', '#E67E22')
+    puliisci_e_grafica('Ore_CPAP', '💨 Utilizzo CPAP (Ore)', '#1ABC9C')
+    puliisci_e_grafica('passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
