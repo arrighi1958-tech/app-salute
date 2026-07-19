@@ -125,7 +125,7 @@ def ottieni_valore_riep(riga_excel, valore_default):
 # ==================== NUOVO: PUNTEGGIO DI SALUTE ODIERNO (CELLA B5) ====================
 punteggio_val = ottieni_valore_riep(5, "70,0")
 
-# Logica di colorazione dinamica (Verde, Giallo, Rosso) basata sulla formattazione condizionale
+# Logica di colorazione dinamica (Verde, Giallo, Rosso)
 classe_punteggio = "border-giallo"
 try:
     punteggio_num = float(punteggio_val.replace(',', '.'))
@@ -170,7 +170,7 @@ st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero G
 # ==================== SEZIONE 2: I PARAMETRI REALI DIRETTI (28 INDICI) ====================
 st.markdown('<div class="section-header">📋 Elenco Completo dei Parametri Analizzati</div>', unsafe_allow_html=True)
 
-# Mappatura basata sul foglio Excel reale (28 parametri totali elencati sotto)
+# Mappatura basata sul foglio Excel reale
 parametri = [
     (3, "Passi", "bg-verde", "Stile di Vita e Attività"),
     (4, "Numero Giorni Analizzati", "bg-blu", "Giorni totali"),
@@ -180,7 +180,7 @@ parametri = [
     (9, "HRV Durante il Sonno (7gg)", "bg-blu", "Variabilità della frequenza cardiaca"),
     (10, "SpO2 Media Durante il Sonno (7gg)", "bg-verde", "Saturazione ossigeno nel sangue"),
     (11, "Pressione Sistolica (Massima)", "bg-giallo", "Media pressione sistolica"),
-    (12, "Pressione Diastolica (Minima)", "bg-verde", "Media pressione diolica"),
+    (12, "Pressione Diastolica (Minima)", "bg-verde", "Media pressione diastolica"),
     (13, "ECG Ultimo Esito", "bg-blu", "Stato tracciato cardiaco"),
     (14, "Livello di Stress Stimato", "bg-blu", "Valutazione da HRV"),
     (17, "Media Ore di Sonno (7gg)", "bg-giallo", "Durata sonno globale"),
@@ -204,7 +204,6 @@ parametri = [
 for riga, titolo, colore, nota in parametri:
     valore_mostrato = ottieni_valore_riep(riga, "--")
     
-    # Adattamento cromatico automatico anche nel bottone interno se scende sotto una certa soglia
     if riga == 5:
         try:
             val_num = float(valore_mostrato.replace(',', '.'))
@@ -224,13 +223,18 @@ for riga, titolo, colore, nota in parametri:
 
 # ==================== SEZIONE 3: ANDAMENTI CRONOLOGICI ====================
 st.markdown('<div class="section-header">📈 Grafici di Tendenza Temporale</div>', unsafe_allow_html=True)
+
 if df_cron is None:
-    st.error("⚠️ Il foglio della Cronologia NON viene caricato. Verifica l'URL.")
+    st.error("⚠️ Il foglio della Cronologia NON viene caricato. Verifica la pubblicazione web o l'URL.")
 else:
-    st.success("✅ Foglio caricato!")
-    st.write("Le tue colonne sono:", list(df_cron.columns))
+    st.success("✅ Cronologia connessa!")
+    st.write("Nomi delle colonne rilevati:", list(df_cron.columns))
     
     data_col = df_cron.columns[0]
+    
+    def pulisci_e_grafica(nome_colonna, titolo_grafico, colore_linea):
+        if nome_colonna in df_cron.columns:
+            df_cron[nome_colonna] = pd.to_numeric(df_cron[nome_colonna].astype(str).str.replace(',', '.'), errors='coerce')
             df_valido = df_cron.dropna(subset=[nome_colonna])
             if not df_valido.empty:
                 fig = px.line(df_valido, x=data_col, y=nome_colonna, title=titolo_grafico,
@@ -239,11 +243,11 @@ else:
                 fig.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig, use_container_width=True)
 
-    pulisci_e_grafica('sistole', '🩺 Trend Pressione Massima (Sistole)', '#E74C3C')
-    pulisci_e_grafica('diastole', '🩺 Trend Pressione Minima (Diastole)', '#3498DB')
-    pulisci_e_grafica('FC a riposo', '❤️ Trend Frequenza Cardiaca a Riposo', '#2ECC71')
-    pulisci_e_grafica('frequenza respiratoria', '🫁 Frequenza Respiratoria Notturna', '#9B59B6')
-    pulisci_e_grafica('SpO2 media durante il sonno', '🩸 Saturazione Ossigeno Notturna', '#F1C40F')
-    pulisci_e_grafica('temperatura del sonno', '🌡️ Temperatura Basale Notturna', '#E67E22')
-    pulisci_e_grafica('Ore_CPAP', '💨 Utilizzo CPAP (Ore)', '#1ABC9C')
-    pulisci_e_grafica('passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
+    puliisci_e_grafica('sistole', '🩺 Trend Pressione Massima (Sistole)', '#E74C3C')
+    puliisci_e_grafica('diastole', '🩺 Trend Pressione Minima (Diastole)', '#3498DB')
+    puliisci_e_grafica('FC a riposo', '❤️ Trend Frequenza Cardiaca a Riposo', '#2ECC71')
+    puliisci_e_grafica('frequenza respiratoria', '🫁 Frequenza Respiratoria Notturna', '#9B59B6')
+    puliisci_e_grafica('SpO2 media durante il sonno', '🩸 Saturazione Ossigeno Notturna', '#F1C40F')
+    puliisci_e_grafica('temperatura del sonno', '🌡️ Temperatura Basale Notturna', '#E67E22')
+    puliisci_e_grafica('Ore_CPAP', '💨 Utilizzo CPAP (Ore)', '#1ABC9C')
+    puliisci_e_grafica('passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
