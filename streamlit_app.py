@@ -224,14 +224,13 @@ for riga, titolo, colore, nota in parametri:
 
 # ==================== SEZIONE 3: ANDAMENTI CRONOLOGICI ====================
 st.markdown('<div class="section-header">📈 Grafici di Tendenza Temporale</div>', unsafe_allow_html=True)
-if df_cron is not None:
+if df_cron is None:
+    st.error("⚠️ Il foglio della Cronologia NON viene caricato. Verifica l'URL.")
+else:
+    st.success("✅ Foglio caricato!")
     st.write("Le tue colonne sono:", list(df_cron.columns))
-if df_cron is not None:
-    data_col = df_cron.columns[0]
     
-    def pulisci_e_grafica(nome_colonna, titolo_grafico, colore_linea):
-        if nome_colonna in df_cron.columns:
-            df_cron[nome_colonna] = pd.to_numeric(df_cron[nome_colonna].astype(str).str.replace(',', '.'), errors='coerce')
+    data_col = df_cron.columns[0]
             df_valido = df_cron.dropna(subset=[nome_colonna])
             if not df_valido.empty:
                 fig = px.line(df_valido, x=data_col, y=nome_colonna, title=titolo_grafico,
