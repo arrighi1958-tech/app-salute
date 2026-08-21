@@ -77,7 +77,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# URL DEI DUE FOGLI GOOGLE
+# URL GOOGLE SHEETS
 URL_RIEPILOGO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=320500951&single=true&output=csv"
 URL_CRONOLOGIA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=784819219&single=true&output=csv"
 
@@ -100,14 +100,11 @@ df_cron = load_data(CSV_CRONOLOGIA)
 st.title("🩺 Scheda Clinica e Monitoraggio")
 st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</strong> Monitoraggio Terapia Anti-ipertensiva, Betabloccante (Bradicardia), Prostata/Nicturia e Terapia Ventilatoria CPAP.</div>', unsafe_allow_html=True)
 
-# FUNZIONE DI ESTRAZIONE A DOPPIA STRATEGIA (INDICE O PAROLA CHIAVE)
 def ottieni_valore(df, idx_colonna, parole_chiave=None, e_testo=False, media_7gg=True):
     if df is None or df.empty:
         return "--"
     
     col_trovata = None
-    
-    # 1. Cerca prima per parole chiave se fornite
     if parole_chiave:
         for parola in parole_chiave:
             for col in df.columns:
@@ -117,7 +114,6 @@ def ottieni_valore(df, idx_colonna, parole_chiave=None, e_testo=False, media_7gg
             if col_trovata:
                 break
                 
-    # 2. Se non trova la colonna o non sono fornite parole chiave, usa l'indice numerico di colonna
     if not col_trovata and idx_colonna < len(df.columns):
         col_trovata = df.columns[idx_colonna]
         
@@ -131,11 +127,9 @@ def ottieni_valore(df, idx_colonna, parole_chiave=None, e_testo=False, media_7gg
             
         ultimo_grezzo = str(serie_pulita.iloc[-1]).strip()
         
-        # Se è un testo fisso o un range tipo "38 - 120"
         if e_testo or "-" in ultimo_grezzo or ":" in ultimo_grezzo:
             return ultimo_grezzo if ultimo_grezzo not in ["nan", "", "None", "#DIV/0!"] else "--"
             
-        # Per i dati numerici calcola la media sui valori validi
         serie_num = pd.to_numeric(
             serie_pulita.astype(str).str.replace(',', '.', regex=False), 
             errors='coerce'
@@ -163,18 +157,13 @@ st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI PRIORITARI</div>
 
 press_sist = ottieni_valore(df_riep, 0, ["sistole"], media_7gg=True)
 press_diast = ottieni_valore(df_riep, 1, ["diastole"], media_7gg=True)
-
-# Riposo/Sonno -> Colonna E (Indice 4)
-fc_sonno = ottieni_valore(df_riep, 4, ["FC Sonno", "FC riposo", "FC_Sonno"], media_7gg=True)
-fc_diurna = ottieni_valore(df_riep, 5, ["sveglio", "diurna", "veglia"], media_7gg=True)
-
-# Range Notturno Min-Max -> Indice di colonna per evitare errore di parsing
-fc_min_max = ottieni_valore(df_riep, 6, ["Analisi FC", "Massima e Minima", "Range"], e_testo=True)
-
+fc_sonno = ottieni_valore(df_riep, 4, ["FC Sonno", "FC riposo"], media_7gg=True)
+fc_diurna = ottieni_valore(df_riep, 5, ["sveglio", "diurna"], media_7gg=True)
+fc_min_max = ottieni_valore(df_riep, 6, ["Analisi FC", "Range"], e_testo=True)
 ecg = ottieni_valore(df_riep, 11, ["ECG"], e_testo=True)
 spo2 = ottieni_valore(df_riep, 7, ["SpO2"], media_7gg=True)
-ore_cpap = ottieni_valore(df_riep, 10, ["CPAP", "Ore_CPAP"], media_7gg=True)
-risvegli = ottieni_valore(df_riep, 9, ["interruzioni", "risvegli", "Nicturia"], media_7gg=True)
+ore_cpap = ottieni_valore(df_riep, 10, ["CPAP"], media_7gg=True)
+risvegli = ottieni_valore(df_riep, 9, ["interruzioni", "risvegli"], media_7gg=True)
 
 # Pressione Arteriosa
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Arteriosa (Media 7gg)</div><div class="metric-value">{press_sist} / {press_diast} <span style="font-size:16px;">mmHg</span></div><div class="metric-status">Target clinico ipertensione: < 130-140 / 80-85 mmHg</div></div>', unsafe_allow_html=True)
@@ -206,16 +195,16 @@ st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Risve
 # ==========================================
 st.markdown('<div class="section-header">📊 INDICATORI DI BENESSERE E STILE DI VITA</div>', unsafe_allow_html=True)
 
-punteggio_val = ottieni_valore(df_riep, 12, ["Indice", "Punteggio", "Salute Olistico"], media_7gg=True)
+punteggio_val = ottieni_valore(df_riep, 12, ["Punteggio", "Indice di Salute"], media_7gg=False)
 
-# Passi -> Recupero diretto se la stringa fallisce
-passi = ottieni_valore(df_riep, 3, ["PASSI", "Passi"], e_testo=True)
+passi = ottieni_valore(df_riep, 3, ["PASSI"], media_7gg=False)
+durata_sonno = ottieni_valore(df_riep, 2, ["Durata Sonno"], e_testo=True)
+sonno_prof = ottieni_valore(df_riep, 8, ["Profondità"], e_testo=True)
+hrv = ottieni_valore(df_riep, 13, ["HRV"], media_7gg=True)
 
-durata_sonno = ottieni_valore(df_riep, 2, ["Durata Sonno", "Sonno"], e_testo=True)
-sonno_prof = ottieni_valore(df_riep, 8, ["Profondità", "Profondo"], e_testo=True)
-hrv = ottieni_valore(df_riep, 13, ["HRV", "Variabilità"], media_7gg=True)
-stress = ottieni_valore(df_riep, 14, ["Stress"], e_testo=True)
-vo2max = ottieni_valore(df_riep, 15, ["VO2", "Fitness"], e_testo=True)
+# Stress formattato come gli altri valori numerici
+stress = ottieni_valore(df_riep, 14, ["Stress"], media_7gg=True)
+vo2max = ottieni_valore(df_riep, 15, ["VO2"], media_7gg=False)
 
 st.markdown(f'''
     <div class="punteggio-card">
@@ -232,14 +221,15 @@ with col1:
 
 with col2:
     st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Profondità Sonno (Giornaliero)</div><div class="metric-value">{sonno_prof}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Livello di Stress Stimato</div><div class="metric-value" style="font-size:18px;">{stress}</div></div>', unsafe_allow_html=True)
+    # Rimosso lo style dedicato per uniformare il font a 28px
+    st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Livello di Stress Stimato</div><div class="metric-value">{stress}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Fitness VO2 Max</div><div class="metric-value">{vo2max}</div></div>', unsafe_allow_html=True)
 
 
 # ==========================================
-# 📈 PARTE 3: GRAFICI TEMPORALI
+# 📈 PARTE 3: GRAFICI TEMPORALI CLINICI
 # ==========================================
-st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA TEMPORALE</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_cron is not None and not df_cron.empty:
     data_col = df_cron.columns[0]
@@ -262,6 +252,7 @@ if df_cron is not None and not df_cron.empty:
                 fig.update_layout(xaxis_title="Data", yaxis_title="Valore", height=280, margin=dict(l=10, r=10, t=35, b=10))
                 st.plotly_chart(fig, use_container_width=True)
 
-    disegna_grafico('Frequenza Cardiac', '❤️ Tendenza Frequenza Cardiaca', '#2ECC71')
-    disegna_grafico('Passi', '🏃 Tendenza Passi Giornalieri', '#34495E')
-    disegna_grafico('Carico', '⚡ Indice di Carico', '#E74C3C')
+    # Grafici scelti per la rilevanza clinica
+    disegna_grafico('Sistole', '🩺 Tendenza Pressione Sistolica (mmHg)', '#E74C3C')
+    disegna_grafico('Frequenza Cardiac', '❤️ Tendenza Frequenza Cardiaca (bpm)', '#2ECC71')
+    disegna_grafico('CPAP', '🌬️ Aderenza Ventilazione CPAP (Ore)', '#3498DB')
