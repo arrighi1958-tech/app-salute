@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import plotly.express as px
 
-# CONFIGURAZIONE GENERALE
+# CONFIGURAZIONE GENERALE PAGINA
 st.set_page_config(page_title="Pannello Clinico Renato", page_icon="🩺", layout="centered")
 
 # STILI CSS
@@ -100,6 +100,7 @@ df_cron = load_data(CSV_CRONOLOGIA)
 st.title("🩺 Scheda Clinica e Monitoraggio")
 st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</strong> Monitoraggio Terapia Anti-ipertensiva, Betabloccante (Bradicardia), Prostata/Nicturia e Terapia Ventilatoria CPAP.</div>', unsafe_allow_html=True)
 
+# FUNZIONE DI ESTRAZIONE A DOPPIA STRATEGIA (INDICE O PAROLA CHIAVE)
 def ottieni_valore(df, idx_colonna, parole_chiave=None, e_testo=False, media_7gg=True):
     if df is None or df.empty:
         return "--"
@@ -202,7 +203,7 @@ durata_sonno = ottieni_valore(df_riep, 2, ["Durata Sonno"], e_testo=True)
 sonno_prof = ottieni_valore(df_riep, 8, ["Profondità"], e_testo=True)
 hrv = ottieni_valore(df_riep, 13, ["HRV"], media_7gg=True)
 
-# Stress formattato come gli altri valori numerici
+# Stress formattato identico alle altre metriche
 stress = ottieni_valore(df_riep, 14, ["Stress"], media_7gg=True)
 vo2max = ottieni_valore(df_riep, 15, ["VO2"], media_7gg=False)
 
@@ -221,19 +222,20 @@ with col1:
 
 with col2:
     st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Profondità Sonno (Giornaliero)</div><div class="metric-value">{sonno_prof}</div></div>', unsafe_allow_html=True)
-    # Rimosso lo style dedicato per uniformare il font a 28px
     st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Livello di Stress Stimato</div><div class="metric-value">{stress}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Fitness VO2 Max</div><div class="metric-value">{vo2max}</div></div>', unsafe_allow_html=True)
 
 
 # ==========================================
-# 📈 PARTE 3: GRAFICI TEMPORALI CLINICI
+# 📈 PARTE 3: GRAFICO TEMPORALE FREQUENZA CARDIACA
 # ==========================================
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_cron is not None and not df_cron.empty:
     data_col = df_cron.columns[0]
-    df_cron[data_col] = pd.to_datetime(df_cron[data_col], dayfirst=True, errors='coerce')
+    
+    # Conversione corretta della data per evitare '0001' sull'asse X
+    df_cron[data_col] = pd.to_datetime(df_cron[data_col], errors='coerce')
     df_cron = df_cron.dropna(subset=[data_col]).sort_values(by=data_col)
     
     def disegna_grafico(parola_chiave, titolo_grafico, colore_linea):
@@ -246,13 +248,25 @@ if df_cron is not None and not df_cron.empty:
             df_plot = df_cron.copy()
             df_plot[col_trovata] = pd.to_numeric(df_plot[col_trovata].astype(str).str.replace(',', '.', regex=False), errors='coerce')
             df_valido = df_plot.dropna(subset=[col_trovata])
+            
             if not df_valido.empty:
-                df_valido['Data_Formattata'] = df_valido[data_col].dt.strftime('%d/%m/%Y')
-                fig = px.line(df_valido, x='Data_Formattata', y=col_trovata, title=titolo_grafico, markers=True, color_discrete_sequence=[colore_linea])
-                fig.update_layout(xaxis_title="Data", yaxis_title="Valore", height=280, margin=dict(l=10, r=10, t=35, b=10))
+                # Formattazione pulita giorno/mese per l'asse X
+                df_valido['Data_Formattata'] = df_valido[data_col].dt.strftime('%d/%m')
+                
+                fig = px.line(
+                    df_valido, 
+                    x='Data_Formattata', 
+                    y=col_trovata, 
+                    title=titolo_grafico, 
+                    markers=True, 
+                    color_discrete_sequence=[colore_linea]
+                )
+                fig.update_layout(
+                    xaxis_title="Data", 
+                    yaxis_title="Valore (bpm)", 
+                    height=300, 
+                    margin=dict(l=10, r=10, t=35, b=10)
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
-    # Grafici scelti per la rilevanza clinica
-    disegna_grafico('Sistole', '🩺 Tendenza Pressione Sistolica (mmHg)', '#E74C3C')
     disegna_grafico('Frequenza Cardiac', '❤️ Tendenza Frequenza Cardiaca (bpm)', '#2ECC71')
-    disegna_grafico('CPAP', '🌬️ Aderenza Ventilazione CPAP (Ore)', '#3498DB')
