@@ -90,14 +90,17 @@ CSV_CRONOLOGIA = f"{URL_CRONOLOGIA}&cache_bypass={timestamp}"
 
 @st.cache_data(ttl=5)
 def load_riepilogo():
-    try: return pd.read_csv(CSV_RIEPILOGO, header=None)
+    try: return pd.read_csv(CSV_RIEPILOGO)
     except: return None
 
 @st.cache_data(ttl=5)
 def load_cronologia():
     try:
         df_cron = pd.read_csv(CSV_CRONOLOGIA)
-        df_cron.iloc[:, 0] = pd.to_datetime(df_cron.iloc[:, 0], errors='coerce')
+        # Pulizia nomi colonne
+        df_cron.columns = df_cron.columns.str.strip()
+        # Parsing data flessibile per giorno/mese/anno
+        df_cron.iloc[:, 0] = pd.to_datetime(df_cron.iloc[:, 0], dayfirst=True, errors='coerce')
         df_cron = df_cron.dropna(subset=[df_cron.columns[0]])
         df_cron = df_cron.sort_values(by=df_cron.columns[0])
         return df_cron
@@ -109,18 +112,29 @@ df_cron = load_cronologia()
 st.title("🩺 Cruscotto Salute Renato")
 st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante permanente. Soglia minima FC impostata per controllo Bradicardia.</div>', unsafe_allow_html=True)
 
-def ottieni_valore_riep(riga_excel, valore_default):
+# FUNZIONE OPZIONE A: Calcola la media a 7 giorni della colonna
+def ottieni_media_7gg(df, indice_colonna_0_based, e_testo=False):
+    if df is None or df.empty:
+        return "--"
     try:
-        if df_riep is not None:
-            indice_python = riga_excel - 1
-            valore = str(df_riep.iloc[indice_python, 1]).strip()
-            if valore not in ["nan", "", "None", "#DIV/0!"]:
-                return valore
-    except: pass
-    return valore_default
+        # Prende gli ultimi 7 dati validi
+        ultimi_dati = df.iloc[-7:, indice_colonna_0_based]
+        if e_testo:
+            val = str(ultimi_dati.iloc[-1]).strip()
+            return val if val not in ["nan", "", "None", "#DIV/0!"] else "--"
+        
+        # Conversione in numeri
+        serie_num = pd.to_numeric(ultimi_dati.astype(str).str.replace(',', '.'), errors='coerce').dropna()
+        if serie_num.empty:
+            return "--"
+        
+        media = serie_num.mean()
+        return f"{media:.1f}".replace('.', ',')
+    except:
+        return "--"
 
-# PUNTEGGIO DI SALUTE ODIERNO (CELLA B5)
-punteggio_val = ottieni_valore_riep(5, "70,0")
+# PUNTEGGIO ODIERNO E MEDIE PRINCIPALI DA DATI_WITHINGS
+punteggio_val = ottieni_media_7gg(df_riep, 32, e_testo=False) # Colonna AG (Indice Salute)
 classe_punteggio = "border-giallo"
 try:
     punteggio_num = float(punteggio_val.replace(',', '.'))
@@ -132,111 +146,109 @@ except: pass
 
 st.markdown(f'''
     <div class="punteggio-card {classe_punteggio}">
-        <div class="punteggio-title">🎯 PUNTEGGIO DI SALUTE ODIERNO</div>
+        <div class="punteggio-title">🎯 PUNTEGGIO DI SALUTE (Media 7 Giorni)</div>
         <div class="punteggio-value">{punteggio_val} <span style="font-size:20px; font-weight:500; color:#666;">/ 100</span></div>
-        <div style="font-size: 12px; margin-top: 5px; font-weight: bold;">Indice generale calcolato dall'ultimo inserimento dati</div>
+        <div style="font-size: 12px; margin-top: 5px; font-weight: bold;">Calcolato sulla media degli ultimi 7 rilevamenti</div>
     </div>
 ''', unsafe_allow_html=True)
 
-# SEZIONE 1: MEDIE STORICHE DI CONTROLLO
-st.markdown('<div class="section-header">📊 Medie Storiche di Controllo (Orizzonte Complessivo)</div>', unsafe_allow_html=True)
+# SEZIONE 1: MEDIE STORICHE DI CONTROLLO (OPZIONE A: 7 GIORNI)
+st.markdown('<div class="section-header">📊 Medie di Controllo (Ultimi 7 Giorni)</div>', unsafe_allow_html=True)
 
-st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(11, "102")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(12, "70")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
+press_sist = ottieni_media_7gg(df_riep, 19) # Colonna T (Sistole)
+press_diast = ottieni_media_7gg(df_riep, 20) # Colonna U (Diastole)
+fc_riposo = ottieni_media_7gg(df_riep, 18) # Colonna S (FC Riposo)
+risvegli = ottieni_media_7gg(df_riep, 9) # Colonna J (Risvegli)
+spo2 = ottieni_media_7gg(df_riep, 22) # Colonna W (SpO2)
+giorni_tot = len(df_riep) if df_riep is not None else "--"
 
-fc_riposo_val = ottieni_valore_riep(8, "52")
+st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (7gg)</div><div class="metric-value">{press_sist} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (7gg)</div><div class="metric-value">{press_diast} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
+
 colore_fc = "bg-verde"
 nota_fc = "Verifica tolleranza Betabloccante M/S"
 try:
-    fc_num = float(fc_riposo_val.replace(',', '.'))
-    if fc_num < 48:
+    if float(fc_riposo.replace(',', '.')) < 48:
         colore_fc = "bg-rosso"
-        nota_fc = "⚠️ ATTENZIONE: Frequenza bassa (Possibile Bradicardia da Betabloccante)"
+        nota_fc = "⚠️ ATTENZIONE: Frequenza media bassa (< 48 bpm)"
 except: pass
 
-st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Media a Riposo (7gg)</div><div class="metric-value">{fc_riposo_val} bpm</div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Risvegli Notturni (7gg)</div><div class="metric-value">{ottieni_valore_riep(19, "3,1")}</div><div class="metric-status">Indice nicturia / disturbi urinari da prostata</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna (SpO2)</div><div class="metric-value">{ottieni_valore_riep(10, "96,2")} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero Giorni Analizzati</div><div class="metric-value">{ottieni_valore_riep(4, "18")} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Media Riposo (7gg)</div><div class="metric-value">{fc_riposo} bpm</div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Risvegli Notturni (7gg)</div><div class="metric-value">{risvegli}</div><div class="metric-status">Indice nicturia / disturbi urinari da prostata</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna SpO2 (7gg)</div><div class="metric-value">{spo2} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero Giorni Registrati nel Foglio</div><div class="metric-value">{giorni_tot} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
 
-# SEZIONE 2: PARAMETRI COMPLETI
-st.markdown('<div class="section-header">📋 Elenco Completo dei Parametri Analizzati</div>', unsafe_allow_html=True)
+# SEZIONE 2: PARAMETRI COMPLETI (MEDIE A 7 GIORNI)
+st.markdown('<div class="section-header">📋 Parametri Dettagliati (Media 7 Giorni)</div>', unsafe_allow_html=True)
 
+# Mappatura colonne del foglio Dati_Withings
 parametri = [
-    (3, "Passi", "bg-verde", "Stile di Vita e Attività"),
-    (4, "Numero Giorni Analizzati", "bg-blu", "Giorni totali"),
-    (5, "Punteggio di Salute Odierno (Valore Cella)", "bg-verde", "Indice di Salute Olistico calcolato"),
-    (7, "FC Tempo Medio Sveglio (Diurna)", "bg-giallo", "Frequenza Cardiaca Diurna"),
-    (8, "FC Media Durante il Sonno (Riposo)", "bg-verde", "Effetto farmaci / battiti minimi"),
-    (9, "HRV Durante il Sonno (7gg)", "bg-blu", "Variabilità della frequenza cardiaca"),
-    (10, "SpO2 Media Durante il Sonno (7gg)", "bg-verde", "Saturazione ossigeno nel sangue"),
-    (11, "Pressione Sistolica (Massima)", "bg-giallo", "Media pressione sistolica"),
-    (12, "Pressione Diastolica (Minima)", "bg-verde", "Media pressione diastolica"),
-    (13, "ECG Ultimo Esito", "bg-blu", "Stato tracciato cardiaco"),
-    (14, "Livello di Stress Stimato", "bg-blu", "Valutazione da HRV"),
-    (17, "Media Ore di Sonno (7gg)", "bg-giallo", "Durata sonno globale"),
-    (18, "Media Punteggio Sonno Storico", "bg-giallo", "Punteggio di qualità generale"),
-    (19, "Interruzioni Notturne (Risvegli)", "bg-rosso", "Frequenza microrisvegli"),
-    (20, "Efficienza del Sonno Media (7gg)", "bg-giallo", "Punteggio di qualità del sonno (%)"),
-    (21, "Temperatura del Sonno Corporea", "bg-verde", "Media termica basale"),
-    (22, "Valutazione Qualità Respiratoria", "bg-verde", "Ultima valutazione registrata"),
-    (23, "Stato Regolarità Ritmo Circadiano", "bg-blu", "Profondità del sonno giudizio"),
-    (24, "Media Ore Sonno Profondo (7gg)", "bg-blu", "Valore espresso in ore decimali"),
-    (25, "Frequenza Respiratoria Notturna", "bg-verde", "Media atti respiratori (RPM)"),
-    (26, "Rapporto Recupero HRV (Fine vs Inizio)", "bg-blu", "Confronto primi/secondi 90 minuti"),
-    (27, "Punteggio di Recupero Fisico", "bg-verde", "Scala 0-100"),
-    (28, "Punteggio di Recupero Mentale", "bg-blu", "Scala 0-100"),
-    (29, "Monitoraggio Rischio Apnea Notturna", "bg-blu", "Rilevazione da sensori / CPAP"),
-    (30, "Picco Frequenza Cardiaca Massima (7gg)", "bg-rosso", "Massimo battito diurno registrato"),
-    (31, "Media Ore Utilizzo CPAP (7gg)", "bg-blu", "Tempo di utilizzo del ventilatore"),
-    (32, "Raggiungimento Obiettivi Attività", "bg-verde", "Target passi quotidiano")
+    (1, "Qualità del Sonno (Punteggio)", "bg-giallo", "Media punteggio sonno 7gg"),
+    (2, "Durata Sonno (Decimali)", "bg-giallo", "Media ore dormite 7gg"),
+    (3, "FC Media durante il Sonno", "bg-verde", "Effetto farmaci notturno"),
+    (4, "HRV durante il Sonno", "bg-blu", "Variabilità frequenza cardiaca 7gg"),
+    (13, "Frequenza Respiratoria", "bg-verde", "Media atti respiratori (RPM)"),
+    (23, "ECG Ultimo Esito", "bg-blu", "Stato tracciato (Ultimo inserimento)", True),
+    (29, "Temperatura del Sonno", "bg-verde", "Media termica basale 7gg"),
+    (30, "Ore Utilizzo CPAP", "bg-blu", "Media ore ventilazione notturna 7gg"),
+    (31, "Punteggio CPAP", "bg-verde", "Efficacia media CPAP 7gg")
 ]
 
-for riga, titolo, colore, nota in parametri:
-    valore_mostrato = ottieni_valore_riep(riga, "--")
+for col_idx, titolo, colore, nota, *is_text in parametri:
+    e_testo = is_text[0] if is_text else False
+    valore = ottieni_media_7gg(df_riep, col_idx, e_testo=e_testo)
     
-    # Gestione sicura per evitare di mostrare #DIV/0!
-    if "#DIV/0!" in valore_mostrato or valore_mostrato == "--":
-        valore_mostrato = "N.D."
-        colore = "bg-blu"
-
-    if riga == 5 and valore_mostrato != "N.D.":
-        try:
-            val_num = float(valore_mostrato.replace(',', '.'))
-            if val_num >= 70.0: colore = "bg-verde"
-            elif val_num <= 30.0: colore = "bg-rosso"
-            else: colore = "bg-giallo"
-        except: pass
-        
     st.markdown(f'''
         <div class="metric-card {colore}">
             <div class="metric-title">{titolo}</div>
-            <div class="metric-value">{valore_mostrato}</div>
+            <div class="metric-value">{valore}</div>
             <div class="metric-status">{nota}</div>
         </div>
     ''', unsafe_allow_html=True)
 
-# SEZIONE 3: ANDAMENTI CRONOLOGICI
+# SEZIONE 3: ANDAMENTI CRONOLOGICI (GRAFICI ROBUSTI)
 st.markdown('<div class="section-header">📈 Grafici di Tendenza Temporale</div>', unsafe_allow_html=True)
 
-if df_cron is None:
-    st.error("⚠️ Il foglio della Cronologia NON viene caricato. Verifica la pubblicazione web.")
+if df_cron is None or df_cron.empty:
+    st.error("⚠️ Impossibile caricare il foglio della Cronologia. Verifica la pubblicazione CSV.")
 else:
     data_col = df_cron.columns[0]
     
-    def pulisci_e_grafica(nome_colonna, titolo_grafico, colore_linea):
-        if nome_colonna in df_cron.columns:
-            df_cron[nome_colonna] = pd.to_numeric(df_cron[nome_colonna].astype(str).str.replace(',', '.'), errors='coerce')
-            df_valido = df_cron.dropna(subset=[nome_colonna])
+    def disegna_grafico(parola_chiave_colonna, titolo_grafico, colore_linea):
+        # Cerca la colonna che contiene la parola chiave
+        col_trovata = None
+        for col in df_cron.columns:
+            if parola_chiave_colonna.lower() in col.lower():
+                col_trovata = col
+                break
+        
+        if col_trovata:
+            df_plot = df_cron.copy()
+            df_plot[col_trovata] = pd.to_numeric(df_plot[col_trovata].astype(str).str.replace(',', '.'), errors='coerce')
+            df_valido = df_plot.dropna(subset=[col_trovata])
+            
             if not df_valido.empty:
-                fig = px.line(df_valido, x=data_col, y=nome_colonna, title=titolo_grafico,
-                              labels={data_col: 'Data', nome_colonna: 'Valore'},
-                              markers=True, color_discrete_sequence=[colore_linea])
-                fig.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
+                # Conversione data in stringa per evitare bug di render Plotly
+                df_valido['Data_Str'] = df_valido[data_col].dt.strftime('%d/%m/%Y')
+                
+                fig = px.line(
+                    df_valido, 
+                    x='Data_Str', 
+                    y=col_trovata, 
+                    title=titolo_grafico,
+                    markers=True, 
+                    color_discrete_sequence=[colore_linea]
+                )
+                fig.update_layout(
+                    xaxis_title="Data",
+                    yaxis_title="Valore",
+                    height=300, 
+                    margin=dict(l=10, r=10, t=40, b=10)
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
-    # Grafici mappati sulle colonne del foglio dati_sport
-    pulisci_e_grafica('Passi Totali', '🏃 Conteggio Passi Giornalieri', '#34495E')
-    pulisci_e_grafica('Frequenza Cardiaca Media', '❤️ Frequenza Cardiaca Media', '#2ECC71')
-    pulisci_e_grafica('Indice di Carico Calcolato', '⚡ Indice di Carico Calcolato', '#E74C3C')
-    pulisci_e_grafica('Rockport VO2 Max', '🫁 Rockport VO2 Max', '#3498DB')
+    # Rendering dei 4 grafici principali
+    disegna_grafico('Passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
+    disegna_grafico('Frequenza Cardiac', '❤️ Frequenza Cardiaca Media', '#2ECC71')
+    disegna_grafico('Indice di Carico', '⚡ Indice di Carico Calcolato', '#E74C3C')
+    disegna_grafico('Rockport', '🫁 Rockport VO2 Max', '#3498DB')
