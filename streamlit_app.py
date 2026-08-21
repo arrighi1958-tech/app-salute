@@ -103,40 +103,46 @@ df_cron = load_data(CSV_CRONOLOGIA)
 st.title("🩺 Cruscotto Salute Renato")
 st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante permanente. Soglia minima FC impostata per controllo Bradicardia.</div>', unsafe_allow_html=True)
 
-# FUNZIONE PER CALCOLARE LA MEDIA A 7 GIORNI CERCANDO LA COLONNA PER NOME
-def calcola_media_per_nome(df, nome_colonna, e_testo=False):
+# FUNZIONE RICERCA ROBUSTA PER COLONNA
+def calcola_media_flessibile(df, lista_parole_chiave, e_testo=False):
     if df is None or df.empty:
         return "--"
     
     col_trovata = None
-    for col in df.columns:
-        if nome_colonna.lower() == col.lower() or nome_colonna.lower() in col.lower():
-            col_trovata = col
+    for parola in lista_parole_chiave:
+        for col in df.columns:
+            if parola.lower() in col.lower():
+                col_trovata = col
+                break
+        if col_trovata:
             break
             
     if not col_trovata:
         return "--"
         
     try:
-        ultimi_dati = df[col_trovata].dropna().tail(7)
-        if ultimi_dati.empty:
-            return "--"
-            
         if e_testo:
-            val = str(ultimi_dati.iloc[-1]).strip()
+            val_serie = df[col_trovata].dropna()
+            if val_serie.empty: return "--"
+            val = str(val_serie.iloc[-1]).strip()
             return val if val not in ["nan", "", "None", "#DIV/0!"] else "--"
             
-        serie_num = pd.to_numeric(ultimi_dati.astype(str).str.replace(',', '.'), errors='coerce').dropna()
+        serie_num = pd.to_numeric(df[col_trovata].astype(str).str.replace(',', '.'), errors='coerce').dropna()
         if serie_num.empty:
             return "--"
             
-        media = serie_num.mean()
+        # Filtra eventuali zeri se non plausibili (es. FC o Pressione = 0)
+        serie_valida = serie_num[serie_num > 0].tail(7)
+        if serie_valida.empty:
+            return "--"
+            
+        media = serie_valida.mean()
         return f"{media:.1f}".replace('.', ',')
     except:
         return "--"
 
 # PUNTEGGIO DI SALUTE
-punteggio_val = calcola_media_per_nome(df_riep, "Indice di Salute Olistico")
+punteggio_val = calcola_media_flessibile(df_riep, ["Indice di Salute Olistico", "Indice di Salute"])
 classe_punteggio = "border-giallo"
 try:
     punteggio_num = float(punteggio_val.replace(',', '.'))
@@ -148,58 +154,54 @@ except: pass
 
 st.markdown(f'''
     <div class="punteggio-card {classe_punteggio}">
-        <div class="punteggio-title">🎯 PUNTEGGIO DI SALUTE (Media 7 Giorni)</div>
+        <div class="punteggio-title">🎯 PUNTEGGIO DI SALUTE OLISTICO (Media 7gg)</div>
         <div class="punteggio-value">{punteggio_val} <span style="font-size:20px; font-weight:500; color:#666;">/ 100</span></div>
-        <div style="font-size: 12px; margin-top: 5px; font-weight: bold;">Media mobile calcolata sugli ultimi 7 rilevamenti</div>
+        <div style="font-size: 12px; margin-top: 5px; font-weight: bold;">Valutazione globale ponderata del benessere generale</div>
     </div>
 ''', unsafe_allow_html=True)
 
 # SEZIONE 1: MEDIE DI CONTROLLO
-st.markdown('<div class="section-header">📊 Medie di Controllo (Ultimi 7 Giorni)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">📊 Parametri Clinici Principali (Media 7 Giorni)</div>', unsafe_allow_html=True)
 
-press_sist = calcola_media_per_nome(df_riep, "sistole")
-press_diast = calcola_media_per_nome(df_riep, "diastole")
-fc_riposo = calcola_media_per_nome(df_riep, "FC a riposo alta")
-if fc_riposo == "--":
-    fc_riposo = calcola_media_per_nome(df_riep, "FC media durante il sonno")
-risvegli = calcola_media_per_nome(df_riep, "interruzioni notturne")
-spo2 = calcola_media_per_nome(df_riep, "SpO2 media durante il sonno")
+press_sist = calcola_media_flessibile(df_riep, ["sistole"])
+press_diast = calcola_media_flessibile(df_riep, ["diastole"])
+fc_riposo = calcola_media_flessibile(df_riep, ["FC mediamente a riposo", "FC a riposo", "FC media durante il sonno"])
+risvegli = calcola_media_flessibile(df_riep, ["interruzioni notturne", "interruzioni"])
+spo2 = calcola_media_flessibile(df_riep, ["SpO2 media", "SpO2"])
 giorni_tot = len(df_riep) if df_riep is not None else "--"
 
-st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (7gg)</div><div class="metric-value">{press_sist} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (7gg)</div><div class="metric-value">{press_diast} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Arteriosa Sistolica (7gg)</div><div class="metric-value">{press_sist} mmHg</div><div class="metric-status">Soglia di stabilità ipertensiva: < 130-140 mmHg</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Arteriosa Diastolica (7gg)</div><div class="metric-value">{press_diast} mmHg</div><div class="metric-status">Soglia di stabilità ipertensiva: < 80-85 mmHg</div></div>', unsafe_allow_html=True)
 
 colore_fc = "bg-verde"
-nota_fc = "Verifica tolleranza Betabloccante M/S"
+nota_fc = "Frequenza a riposo stabile (Tolleranza betabloccante)"
 try:
     if float(fc_riposo.replace(',', '.')) < 48:
         colore_fc = "bg-rosso"
-        nota_fc = "⚠️ ATTENZIONE: Frequenza media bassa (< 48 bpm)"
+        nota_fc = "⚠️ ATTENZIONE: Frequenza cardiaca media ridotta (< 48 bpm)"
 except: pass
 
-st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Media Riposo (7gg)</div><div class="metric-value">{fc_riposo} bpm</div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media Risvegli Notturni (7gg)</div><div class="metric-value">{risvegli}</div><div class="metric-status">Indice nicturia / disturbi urinari da prostata</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna SpO2 (7gg)</div><div class="metric-value">{spo2} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero Giorni Registrati nel Foglio</div><div class="metric-value">{giorni_tot} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Riposo / Notturna (7gg)</div><div class="metric-value">{fc_riposo} bpm</div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Risvegli Notturni Medi (7gg)</div><div class="metric-value">{risvegli}</div><div class="metric-status">Monitoraggio continuo nicturia / sonno disturbato</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Saturazione Ossigeno SpO2 (7gg)</div><div class="metric-value">{spo2} %</div><div class="metric-status">Efficacia scambio respiratorio durante il sonno</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Totale Giornate Monitorate</div><div class="metric-value">{giorni_tot} giorni</div><div class="metric-status">Storico dati registrato nel sistema</div></div>', unsafe_allow_html=True)
 
 # SEZIONE 2: PARAMETRI DETTAGLIATI
-st.markdown('<div class="section-header">📋 Parametri Dettagliati (Media 7 Giorni)</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">📋 Dettaglio Qualità Sonno e CPAP (Media 7gg)</div>', unsafe_allow_html=True)
 
 parametri = [
-    ("punteggio di qualità del sonno", "Qualità del Sonno (Punteggio)", "bg-giallo", "Media punteggio sonno 7gg"),
-    ("durata sonno", "Durata Sonno (Ore)", "bg-giallo", "Media ore dormite 7gg"),
-    ("FC media durante il sonno", "FC Media Durante il Sonno", "bg-verde", "Effetto farmaci notturno"),
-    ("HRV durante il sonno", "HRV Durante il Sonno", "bg-blu", "Variabilità frequenza cardiaca 7gg"),
-    ("frequenza respiratoria", "Frequenza Respiratoria Notturna", "bg-verde", "Media atti respiratori (RPM)"),
-    ("ECG", "ECG Ultimo Esito", "bg-blu", "Stato tracciato (Ultimo inserimento)", True),
-    ("temperatura del sonno", "Temperatura Corporea Sonno", "bg-verde", "Media termica basale 7gg"),
-    ("Ore_CPAP", "Ore Utilizzo CPAP", "bg-blu", "Media ore ventilazione notturna 7gg"),
-    ("CPAP Decimale", "Indice Efficacia CPAP", "bg-verde", "Efficacia media CPAP 7gg")
+    (["punteggio di qualità del sonno", "qualità del sonno"], "Punteggio Qualità Sonno", "bg-giallo", "Indice sintetico Withings qualità riposo", False),
+    (["durata sonno", "durata"], "Durata Totale Sonno", "bg-giallo", "Ore effettive di riposo notturno", False),
+    (["HRV durante il sonno", "HRV"], "Variabilità Cardiaca (HRV)", "bg-blu", "Indice di recupero del sistema nervoso autonoma", False),
+    (["frequenza respiratoria"], "Frequenza Respiratoria", "bg-verde", "Atti respiratori medi al minuto (RPM)", False),
+    (["ECG"], "Tracciato ECG (Ultimo)", "bg-blu", "Risultato dell'ultima rilevazione elettrocardiografica", True),
+    (["temperatura del sonno", "temperatura"], "Temperatura Corporea Basale", "bg-verde", "Variazione termica durante la notte (°C)", False),
+    (["Ore_CPAP", "Ore CPAP", "CPAP"], "Ore Utilizzo Ventilatore CPAP", "bg-blu", "Tempo di utilizzo effettivo della ventilazione", False),
+    (["CPA P Decimale", "CPA P", "CPAP Decimale"], "Indice Efficacia Terapia CPAP", "bg-verde", "Qualità ed efficacia del supporto respiratorio", False)
 ]
 
-for nome_col, titolo, colore, nota, *is_text in parametri:
-    e_testo = is_text[0] if is_text else False
-    valore = calcola_media_per_nome(df_riep, nome_col, e_testo=e_testo)
+for parole_chiave, titolo, colore, nota, e_testo in parametri:
+    valore = calcola_media_flessibile(df_riep, parole_chiave, e_testo=e_testo)
     
     st.markdown(f'''
         <div class="metric-card {colore}">
@@ -212,9 +214,7 @@ for nome_col, titolo, colore, nota, *is_text in parametri:
 # SEZIONE 3: GRAFICI TEMPORALI
 st.markdown('<div class="section-header">📈 Grafici di Tendenza Temporale</div>', unsafe_allow_html=True)
 
-if df_cron is None or df_cron.empty:
-    st.error("⚠️ Impossibile caricare la Cronologia. Verifica la pubblicazione CSV della scheda 'dati_sport'.")
-else:
+if df_cron is not None and not df_cron.empty:
     data_col = df_cron.columns[0]
     df_cron[data_col] = pd.to_datetime(df_cron[data_col], dayfirst=True, errors='coerce')
     df_cron = df_cron.dropna(subset=[data_col]).sort_values(by=data_col)
@@ -241,7 +241,12 @@ else:
                     markers=True, 
                     color_discrete_sequence=[colore_linea]
                 )
-                fig.update_layout(xaxis_title="Data", yaxis_title="Valore", height=300, margin=dict(l=10, r=10, t=40, b=10))
+                fig.update_layout(
+                    xaxis_title="Data", 
+                    yaxis_title="Valore", 
+                    height=300, 
+                    margin=dict(l=10, r=10, t=40, b=10)
+                )
                 st.plotly_chart(fig, use_container_width=True)
 
     disegna_grafico('Passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
