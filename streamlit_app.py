@@ -100,22 +100,27 @@ df_cron = load_data(CSV_CRONOLOGIA)
 st.title("🩺 Scheda Clinica e Monitoraggio")
 st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</strong> Monitoraggio Terapia Anti-ipertensiva, Betabloccante (Bradicardia), Prostata/Nicturia e Terapia Ventilatoria CPAP.</div>', unsafe_allow_html=True)
 
-# FUNZIONI ESTRAZIONE DATI MIGLIORATE
+# FUNZIONI DI ESTRAZIONE RIVISTE PER CORREGGERE DECIMALI E TESTI
 def estrai_valore_colonna(df, idx_colonna, media_7gg=True, e_testo=False):
     if df is None or df.empty or idx_colonna >= len(df.columns):
         return "--"
     try:
         col = df.columns[idx_colonna]
+        
+        # Gestione valori puramente testuali o intervalli (es. "38 - 146")
         if e_testo:
             val_serie = df[col].dropna()
             if val_serie.empty: return "--"
             val = str(val_serie.iloc[-1]).strip()
             return val if val not in ["nan", "", "None", "#DIV/0!"] else "--"
             
-        # Pulisce la stringa rimuovendo i punti delle migliaia e gestendo le virgole dei decimali
-        serie_pulita = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-        serie_num = pd.to_numeric(serie_pulita, errors='coerce').dropna()
-        if serie_num.empty: return "--"
+        # Conversione numerica corretta senza rimuovere i punti decimali
+        serie_str = df[col].astype(str).str.replace(',', '.', regex=False)
+        serie_num = pd.to_numeric(serie_str, errors='coerce').dropna()
+        if serie_num.empty: 
+            # Se la conversione numerica fallisce, restituisce il valore come testo
+            val_serie = df[col].dropna()
+            return str(val_serie.iloc[-1]).strip() if not val_serie.empty else "--"
             
         if media_7gg:
             serie_valida = serie_num[serie_num > 0].tail(7)
@@ -145,7 +150,7 @@ press_sist = calcola_media_flessibile(df_riep, ["sistole"], media_7gg=True)
 press_diast = calcola_media_flessibile(df_riep, ["diastole"], media_7gg=True)
 fc_sonno = estrai_valore_colonna(df_riep, 4, media_7gg=True) # Colonna E
 fc_diurna = calcola_media_flessibile(df_riep, ["FC tempo medio sveglio", "FC diurna"], media_7gg=True)
-fc_min_max = calcola_media_flessibile(df_riep, ["Analisi FC", "FC Massima e Minima", "Massima e Minima"], media_7gg=False, e_testo=True)
+fc_min_max = calcola_media_flessibile(df_riep, ["Analisi FC", "FC Massima e Minima"], media_7gg=False, e_testo=True)
 ecg = calcola_media_flessibile(df_riep, ["ECG"], media_7gg=False, e_testo=True)
 spo2 = calcola_media_flessibile(df_riep, ["SpO2"], media_7gg=True)
 ore_cpap = calcola_media_flessibile(df_riep, ["Ore_CPAP", "Ore CPAP"], media_7gg=True)
@@ -181,12 +186,12 @@ st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Risve
 # ==========================================
 st.markdown('<div class="section-header">📊 INDICATORI DI BENESSERE E STILE DI VITA</div>', unsafe_allow_html=True)
 
-punteggio_val = calcola_media_flessibile(df_riep, ["Indice di Salute Olistico", "Indice di Salute", "Punteggio di Salute"], media_7gg=True)
-passi = calcola_media_flessibile(df_riep, ["PASSI MEDIA", "Passi"], media_7gg=True)
+punteggio_val = calcola_media_flessibile(df_riep, ["Indice di Salute Olistico", "Punteggio di Salute"], media_7gg=True)
+passi = calcola_media_flessibile(df_riep, ["PASSI MEDIA", "Passi"], media_7gg=True, e_testo=True)
 durata_sonno = estrai_valore_colonna(df_riep, 2, media_7gg=False, e_testo=True) # Colonna C
 sonno_prof = estrai_valore_colonna(df_riep, 8, media_7gg=False, e_testo=True)   # Colonna I
 hrv = calcola_media_flessibile(df_riep, ["HRV"], media_7gg=True)
-stress = calcola_media_flessibile(df_riep, ["Livello di Stress", "Stress Stimato"], media_7gg=False, e_testo=True)
+stress = calcola_media_flessibile(df_riep, ["Livello di Stress", "Stress"], media_7gg=False, e_testo=True)
 vo2max = calcola_media_flessibile(df_riep, ["livello di fitness", "VO2 MAX"], media_7gg=False, e_testo=True)
 
 st.markdown(f'''
@@ -226,7 +231,7 @@ if df_cron is not None and not df_cron.empty:
                 break
         if col_trovata:
             df_plot = df_cron.copy()
-            df_plot[col_trovata] = pd.to_numeric(df_plot[col_trovata].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False), errors='coerce')
+            df_plot[col_trovata] = pd.to_numeric(df_plot[col_trovata].astype(str).str.replace(',', '.', regex=False), errors='coerce')
             df_valido = df_plot.dropna(subset=[col_trovata])
             if not df_valido.empty:
                 df_valido['Data_Formattata'] = df_valido[data_col].dt.strftime('%d/%m/%Y')
