@@ -100,79 +100,88 @@ df_cron = load_data(CSV_CRONOLOGIA)
 st.title("🩺 Scheda Clinica e Monitoraggio")
 st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</strong> Monitoraggio Terapia Anti-ipertensiva, Betabloccante (Bradicardia), Prostata/Nicturia e Terapia Ventilatoria CPAP.</div>', unsafe_allow_html=True)
 
-# FUNZIONI DI ESTRAZIONE RIVISTE PER CORREGGERE DECIMALI E TESTI
-def estrai_valore_colonna(df, idx_colonna, media_7gg=True, e_testo=False):
-    if df is None or df.empty or idx_colonna >= len(df.columns):
+# FUNZIONI ESTRAZIONE ROBUSTE
+def estrai_valore_sicuro(df, parole_chiave, e_testo=False, media_7gg=True):
+    if df is None or df.empty:
         return "--"
-    try:
-        col = df.columns[idx_colonna]
-        
-        # Gestione valori puramente testuali o intervalli (es. "38 - 146")
-        if e_testo:
-            val_serie = df[col].dropna()
-            if val_serie.empty: return "--"
-            val = str(val_serie.iloc[-1]).strip()
-            return val if val not in ["nan", "", "None", "#DIV/0!"] else "--"
+    
+    col_trovata = None
+    for parola in parole_chiave:
+        for col in df.columns:
+            if parola.lower() in col.lower():
+                col_trovata = col
+                break
+        if col_trovata:
+            break
             
-        # Conversione numerica corretta senza rimuovere i punti decimali
-        serie_str = df[col].astype(str).str.replace(',', '.', regex=False)
-        serie_num = pd.to_numeric(serie_str, errors='coerce').dropna()
-        if serie_num.empty: 
-            # Se la conversione numerica fallisce, restituisce il valore come testo
-            val_serie = df[col].dropna()
-            return str(val_serie.iloc[-1]).strip() if not val_serie.empty else "--"
+    if not col_trovata:
+        return "--"
+        
+    try:
+        serie_pulita = df[col_trovata].dropna()
+        if serie_pulita.empty:
+            return "--"
+            
+        val_ultimo = str(serie_pulita.iloc[-1]).strip()
+        
+        if e_testo:
+            return val_ultimo if val_ultimo not in ["nan", "", "None", "#DIV/0!"] else "--"
+            
+        # Tentativo di estrazione numerica per medie e numeri con punti/virgole
+        serie_num = pd.to_numeric(
+            serie_pulita.astype(str).str.replace(',', '.', regex=False), 
+            errors='coerce'
+        ).dropna()
+        
+        if serie_num.empty:
+            return val_ultimo
             
         if media_7gg:
-            serie_valida = serie_num[serie_num > 0].tail(7)
-            if serie_valida.empty: return "--"
-            val_medio = serie_valida.mean()
-            return f"{val_medio:.1f}".replace('.', ',')
+            val_validi = serie_num[serie_num > 0].tail(7)
+            if val_validi.empty:
+                return "--"
+            return f"{val_validi.mean():.1f}".replace('.', ',')
         else:
-            ultimo_val = serie_num.iloc[-1]
-            return f"{ultimo_val:.1f}".replace('.', ',') if ultimo_val % 1 != 0 else f"{int(ultimo_val)}"
+            v = serie_num.iloc[-1]
+            return f"{v:.1f}".replace('.', ',') if v % 1 != 0 else f"{int(v)}"
     except:
         return "--"
 
-def calcola_media_flessibile(df, lista_parole_chiave, media_7gg=True, e_testo=False):
-    if df is None or df.empty: return "--"
-    for parola in lista_parole_chiave:
-        for idx, col in enumerate(df.columns):
-            if parola.lower() in col.lower():
-                return estrai_valore_colonna(df, idx, media_7gg=media_7gg, e_testo=e_testo)
-    return "--"
-
 # ==========================================
-# 🚨 PARTE 1: PRIORITÀ CLINICA (MEDICO)
+# 🚨 PARTE 1: PARAMETRI CLINICI PRIORITARI
 # ==========================================
 st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI PRIORITARI</div>', unsafe_allow_html=True)
 
-press_sist = calcola_media_flessibile(df_riep, ["sistole"], media_7gg=True)
-press_diast = calcola_media_flessibile(df_riep, ["diastole"], media_7gg=True)
-fc_sonno = estrai_valore_colonna(df_riep, 4, media_7gg=True) # Colonna E
-fc_diurna = calcola_media_flessibile(df_riep, ["FC tempo medio sveglio", "FC diurna"], media_7gg=True)
-fc_min_max = calcola_media_flessibile(df_riep, ["Analisi FC", "FC Massima e Minima"], media_7gg=False, e_testo=True)
-ecg = calcola_media_flessibile(df_riep, ["ECG"], media_7gg=False, e_testo=True)
-spo2 = calcola_media_flessibile(df_riep, ["SpO2"], media_7gg=True)
-ore_cpap = calcola_media_flessibile(df_riep, ["Ore_CPAP", "Ore CPAP"], media_7gg=True)
-risvegli = calcola_media_flessibile(df_riep, ["interruzioni notturne", "risvegli"], media_7gg=True)
+press_sist = estrai_valore_sicuro(df_riep, ["sistole"], media_7gg=True)
+press_diast = estrai_valore_sicuro(df_riep, ["diastole"], media_7gg=True)
+
+# Recupero per indice diretto di colonna se presente, altrimenti per nome
+fc_sonno = estrai_valore_sicuro(df_riep, ["FC Sonno", "Riposo", "Frequenza Cardiaca"], media_7gg=True)
+fc_diurna = estrai_valore_sicuro(df_riep, ["FC tempo medio sveglio", "FC diurna", "veglia"], media_7gg=True)
+fc_min_max = estrai_valore_sicuro(df_riep, ["Analisi FC", "FC Massima e Minima", "Range", "Min - Max"], e_testo=True)
+
+ecg = estrai_valore_sicuro(df_riep, ["ECG"], e_testo=True)
+spo2 = estrai_valore_sicuro(df_riep, ["SpO2"], media_7gg=True)
+ore_cpap = estrai_valore_sicuro(df_riep, ["Ore_CPAP", "Ore CPAP", "CPAP"], media_7gg=True)
+risvegli = estrai_valore_sicuro(df_riep, ["interruzioni notturne", "risvegli", "Nicturia"], media_7gg=True)
 
 # Pressione Arteriosa
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Arteriosa (Media 7gg)</div><div class="metric-value">{press_sist} / {press_diast} <span style="font-size:16px;">mmHg</span></div><div class="metric-status">Target clinico ipertensione: < 130-140 / 80-85 mmHg</div></div>', unsafe_allow_html=True)
 
-# Frequenze e Alert Bradicardia
+# Frequenze Cardiache
 colore_fc = "bg-verde"
 nota_fc = "Frequenza cardiaca in target sotto betabloccante"
 try:
-    if float(fc_sonno.replace(',', '.')) < 48:
+    if float(str(fc_sonno).replace(',', '.')) < 48:
         colore_fc = "bg-rosso"
         nota_fc = "⚠️ SOGLIA CRITICA: Rischio bradicardia notturna (< 48 bpm)"
 except: pass
 
-st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Riposo / Sonno [Colonna E] (Media 7gg)</div><div class="metric-value">{fc_sonno} <span style="font-size:16px;">bpm</span></div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card {colore_fc}"><div class="metric-title">Frequenza Cardiaca Riposo / Sonno (Media 7gg)</div><div class="metric-value">{fc_sonno} <span style="font-size:16px;">bpm</span></div><div class="metric-status">{nota_fc}</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Frequenza Cardiaca Diurna (Media 7gg)</div><div class="metric-value">{fc_diurna} <span style="font-size:16px;">bpm</span></div><div class="metric-status">Valore medio durante la veglia</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Range FC Notturno (Min - Max Giornaliero)</div><div class="metric-value">{fc_min_max} <span style="font-size:16px;">bpm</span></div><div class="metric-status">Monitoraggio picchi e minimi bradicardici</div></div>', unsafe_allow_html=True)
 
-# Respirazione e Terapia CPAP
+# CPAP e SpO2
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Ore Utilizzo CPAP (Media 7gg)</div><div class="metric-value">{ore_cpap} <span style="font-size:16px;">ore</span></div><div class="metric-status">Aderenza alla terapia di ventilazione notturna</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Saturazione Ossigeno SpO2 (Media 7gg)</div><div class="metric-value">{spo2} %</div><div class="metric-status">Efficienza respiratoria notturna under-CPAP</div></div>', unsafe_allow_html=True)
 
@@ -186,13 +195,21 @@ st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Risve
 # ==========================================
 st.markdown('<div class="section-header">📊 INDICATORI DI BENESSERE E STILE DI VITA</div>', unsafe_allow_html=True)
 
-punteggio_val = calcola_media_flessibile(df_riep, ["Indice di Salute Olistico", "Punteggio di Salute"], media_7gg=True)
-passi = calcola_media_flessibile(df_riep, ["PASSI MEDIA", "Passi"], media_7gg=True, e_testo=True)
-durata_sonno = estrai_valore_colonna(df_riep, 2, media_7gg=False, e_testo=True) # Colonna C
-sonno_prof = estrai_valore_colonna(df_riep, 8, media_7gg=False, e_testo=True)   # Colonna I
-hrv = calcola_media_flessibile(df_riep, ["HRV"], media_7gg=True)
-stress = calcola_media_flessibile(df_riep, ["Livello di Stress", "Stress"], media_7gg=False, e_testo=True)
-vo2max = calcola_media_flessibile(df_riep, ["livello di fitness", "VO2 MAX"], media_7gg=False, e_testo=True)
+punteggio_val = estrai_valore_sicuro(df_riep, ["Indice di Salute", "Punteggio di Salute", "Salute Olistico"], media_7gg=True)
+passi = estrai_valore_sicuro(df_riep, ["PASSI", "Passi Medi", "Steps"], e_testo=True)
+
+# Lettura sicura da colonna se la stringa fallisce
+durata_sonno = estrai_valore_sicuro(df_riep, ["Durata Sonno", "Ore Sonno"], e_testo=True)
+if durata_sonno == "--" and df_riep is not None and len(df_riep.columns) > 2:
+    durata_sonno = str(df_riep.iloc[:, 2].dropna().iloc[-1])
+
+sonno_prof = estrai_valore_sicuro(df_riep, ["Profondità Sonno", "Profondo"], e_testo=True)
+if sonno_prof == "--" and df_riep is not None and len(df_riep.columns) > 8:
+    sonno_prof = str(df_riep.iloc[:, 8].dropna().iloc[-1])
+
+hrv = estrai_valore_sicuro(df_riep, ["HRV", "Variabilità"], media_7gg=True)
+stress = estrai_valore_sicuro(df_riep, ["Stress", "Livello di Stress"], e_testo=True)
+vo2max = estrai_valore_sicuro(df_riep, ["VO2", "Fitness"], e_testo=True)
 
 st.markdown(f'''
     <div class="punteggio-card">
@@ -204,11 +221,11 @@ st.markdown(f'''
 col1, col2 = st.columns(2)
 with col1:
     st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Passi Medi (7gg)</div><div class="metric-value">{passi}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Durata Sonno [Colonna C] (Giornaliero)</div><div class="metric-value">{durata_sonno}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Durata Sonno (Giornaliero)</div><div class="metric-value">{durata_sonno}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Variabilità Cardiaca HRV (7gg)</div><div class="metric-value">{hrv} ms</div></div>', unsafe_allow_html=True)
 
 with col2:
-    st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Profondità Sonno [Colonna I] (Giornaliero)</div><div class="metric-value">{sonno_prof}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Profondità Sonno (Giornaliero)</div><div class="metric-value">{sonno_prof}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Livello di Stress Stimato</div><div class="metric-value" style="font-size:18px;">{stress}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Fitness VO2 Max</div><div class="metric-value">{vo2max}</div></div>', unsafe_allow_html=True)
 
