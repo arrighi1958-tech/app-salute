@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import plotly.express as px
 
-# CONFIGURAZIONE GENERALE (Ottimizzata per cellulare)
+# CONFIGURAZIONE GENERALE (Ottimizzata per smartphone)
 st.set_page_config(page_title="Pannello Salute Renato", page_icon="🩺", layout="centered")
 
 # STILI CSS PERSONALIZZATI
@@ -56,7 +56,6 @@ st.markdown("""
     .bg-rosso { border-left-color: #E74C3C !important; color: #C0392B; }
     .bg-blu { border-left-color: #3498DB !important; color: #2980B9; }
     
-    /* Stile speciale per il Punteggio in cima */
     .punteggio-card {
         background-color: #fcfcfc;
         padding: 20px;
@@ -82,10 +81,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # URL DEI DUE FOGLI GOOGLE
-URL_RIEPILOGO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=0&single=true&output=csv"
-URL_CRONOLOGIA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=320500951&single=true&output=csv"
+URL_RIEPILOGO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=320500951&single=true&output=csv"
+URL_CRONOLOGIA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=784819219&single=true&output=csv"
 
-# Bypass della cache
 timestamp = int(time.time())
 CSV_RIEPILOGO = f"{URL_RIEPILOGO}&cache_bypass={timestamp}"
 CSV_CRONOLOGIA = f"{URL_CRONOLOGIA}&cache_bypass={timestamp}"
@@ -111,21 +109,18 @@ df_cron = load_cronologia()
 st.title("🩺 Cruscotto Salute Renato")
 st.markdown('<div class="clinical-box"><strong>Quadro Clinico (68 anni):</strong> Monitoraggio bilanciamento farmaci Ipertensione, Betabloccanti (M/S), Prostata, Anticoagulante permanente. Soglia minima FC impostata per controllo Bradicardia.</div>', unsafe_allow_html=True)
 
-# Funzione per estrarre valori in modo sicuro
 def ottieni_valore_riep(riga_excel, valore_default):
     try:
         if df_riep is not None:
             indice_python = riga_excel - 1
             valore = str(df_riep.iloc[indice_python, 1]).strip()
-            if valore != "nan" and valore != "" and valore != "None":
+            if valore not in ["nan", "", "None", "#DIV/0!"]:
                 return valore
     except: pass
     return valore_default
 
-# ==================== NUOVO: PUNTEGGIO DI SALUTE ODIERNO (CELLA B5) ====================
+# PUNTEGGIO DI SALUTE ODIERNO (CELLA B5)
 punteggio_val = ottieni_valore_riep(5, "70,0")
-
-# Logica di colorazione dinamica (Verde, Giallo, Rosso)
 classe_punteggio = "border-giallo"
 try:
     punteggio_num = float(punteggio_val.replace(',', '.'))
@@ -143,14 +138,12 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-
-# ==================== SEZIONE 1: MEDIE STORICHE DI CONTROLLO ====================
+# SEZIONE 1: MEDIE STORICHE DI CONTROLLO
 st.markdown('<div class="section-header">📊 Medie Storiche di Controllo (Orizzonte Complessivo)</div>', unsafe_allow_html=True)
 
 st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Pressione Sistolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(11, "102")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 130-140</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Diastolica Media (Storica)</div><div class="metric-value">{ottieni_valore_riep(12, "70")} mmHg</div><div class="metric-status">Target ottimale stabilità: < 80-85</div></div>', unsafe_allow_html=True)
 
-# Controllo dinamico colore FC a Riposo per Bradicardia
 fc_riposo_val = ottieni_valore_riep(8, "52")
 colore_fc = "bg-verde"
 nota_fc = "Verifica tolleranza Betabloccante M/S"
@@ -166,15 +159,13 @@ st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Media 
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Media Ossigenazione Notturna (SpO2)</div><div class="metric-value">{ottieni_valore_riep(10, "96,2")} %</div><div class="metric-status">Efficacia respiratoria combinata a CPAP</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Numero Giorni Analizzati</div><div class="metric-value">{ottieni_valore_riep(4, "18")} giorni</div><div class="metric-status">Ampiezza dello storico dati attuale</div></div>', unsafe_allow_html=True)
 
-
-# ==================== SEZIONE 2: I PARAMETRI REALI DIRETTI (28 INDICI) ====================
+# SEZIONE 2: PARAMETRI COMPLETI
 st.markdown('<div class="section-header">📋 Elenco Completo dei Parametri Analizzati</div>', unsafe_allow_html=True)
 
-# Mappatura basata sul foglio Excel reale
 parametri = [
     (3, "Passi", "bg-verde", "Stile di Vita e Attività"),
     (4, "Numero Giorni Analizzati", "bg-blu", "Giorni totali"),
-    (5, "Punticcio di Saluti Odierno (Valore Cella)", "bg-verde", "Indice di Salute Olistico calcolato"),
+    (5, "Punteggio di Salute Odierno (Valore Cella)", "bg-verde", "Indice di Salute Olistico calcolato"),
     (7, "FC Tempo Medio Sveglio (Diurna)", "bg-giallo", "Frequenza Cardiaca Diurna"),
     (8, "FC Media Durante il Sonno (Riposo)", "bg-verde", "Effetto farmaci / battiti minimi"),
     (9, "HRV Durante il Sonno (7gg)", "bg-blu", "Variabilità della frequenza cardiaca"),
@@ -204,7 +195,12 @@ parametri = [
 for riga, titolo, colore, nota in parametri:
     valore_mostrato = ottieni_valore_riep(riga, "--")
     
-    if riga == 5:
+    # Gestione sicura per evitare di mostrare #DIV/0!
+    if "#DIV/0!" in valore_mostrato or valore_mostrato == "--":
+        valore_mostrato = "N.D."
+        colore = "bg-blu"
+
+    if riga == 5 and valore_mostrato != "N.D.":
         try:
             val_num = float(valore_mostrato.replace(',', '.'))
             if val_num >= 70.0: colore = "bg-verde"
@@ -220,16 +216,12 @@ for riga, titolo, colore, nota in parametri:
         </div>
     ''', unsafe_allow_html=True)
 
-
-# ==================== SEZIONE 3: ANDAMENTI CRONOLOGICI ====================
+# SEZIONE 3: ANDAMENTI CRONOLOGICI
 st.markdown('<div class="section-header">📈 Grafici di Tendenza Temporale</div>', unsafe_allow_html=True)
 
 if df_cron is None:
-    st.error("⚠️ Il foglio della Cronologia NON viene caricato. Verifica la pubblicazione web o l'URL.")
+    st.error("⚠️ Il foglio della Cronologia NON viene caricato. Verifica la pubblicazione web.")
 else:
-    st.success("✅ Cronologia connessa!")
-    st.write("Nomi delle colonne rilevati:", list(df_cron.columns))
-    
     data_col = df_cron.columns[0]
     
     def pulisci_e_grafica(nome_colonna, titolo_grafico, colore_linea):
@@ -243,11 +235,8 @@ else:
                 fig.update_layout(height=280, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig, use_container_width=True)
 
-    puliisci_e_grafica('sistole', '🩺 Trend Pressione Massima (Sistole)', '#E74C3C')
-    puliisci_e_grafica('diastole', '🩺 Trend Pressione Minima (Diastole)', '#3498DB')
-    puliisci_e_grafica('FC a riposo', '❤️ Trend Frequenza Cardiaca a Riposo', '#2ECC71')
-    puliisci_e_grafica('frequenza respiratoria', '🫁 Frequenza Respiratoria Notturna', '#9B59B6')
-    puliisci_e_grafica('SpO2 media durante il sonno', '🩸 Saturazione Ossigeno Notturna', '#F1C40F')
-    puliisci_e_grafica('temperatura del sonno', '🌡️ Temperatura Basale Notturna', '#E67E22')
-    puliisci_e_grafica('Ore_CPAP', '💨 Utilizzo CPAP (Ore)', '#1ABC9C')
-    puliisci_e_grafica('passi', '🏃 Conteggio Passi Giornalieri', '#34495E')
+    # Grafici mappati sulle colonne del foglio dati_sport
+    pulisci_e_grafica('Passi Totali', '🏃 Conteggio Passi Giornalieri', '#34495E')
+    pulisci_e_grafica('Frequenza Cardiaca Media', '❤️ Frequenza Cardiaca Media', '#2ECC71')
+    pulisci_e_grafica('Indice di Carico Calcolato', '⚡ Indice di Carico Calcolato', '#E74C3C')
+    pulisci_e_grafica('Rockport VO2 Max', '🫁 Rockport VO2 Max', '#3498DB')
