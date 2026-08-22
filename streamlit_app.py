@@ -42,6 +42,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# URL CORRETTI
 URL_RIEPILOGO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=320500951&single=true&output=csv"
 URL_CRONOLOGIA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=784819219&single=true&output=csv"
 
@@ -70,28 +71,17 @@ def load_cronologia(url):
 
 df_cron = load_cronologia(CSV_CRONOLOGIA)
 
-def ottieni_valore(df, parole_chiave):
+def ottieni_valore_esatto(df, testo_ricercato):
     if df is None or df.empty:
         return "--"
     try:
-        # Ricerca per riga (struttura verticale tipo Pannello)
         for _, row in df.iterrows():
-            testo_riga = " ".join([str(val) for val in row if pd.notna(val)]).lower()
-            for parola in parole_chiave:
-                if parola.lower() in testo_riga:
-                    valori_validi = [str(v).strip() for v in row if pd.notna(v) and str(v).strip() not in ["nan", "", "None", "#DIV/0!"]]
-                    if len(valori_validi) >= 2:
-                        return valori_validi[1]
-                    elif len(valori_validi) == 1:
-                        return valori_validi[0]
-        
-        # Fallback ricerca per colonna (struttura orizzontale)
-        for parola in parole_chiave:
-            for col in df.columns:
-                if parola.lower() in str(col).lower():
-                    serie = df[col].dropna()
-                    if not serie.empty:
-                        return str(serie.iloc[-1]).strip()
+            colA = str(row[0]).strip().lower() if pd.notna(row[0]) else ""
+            if testo_ricercato.lower() in colA:
+                if len(row) > 1 and pd.notna(row[1]):
+                    valore = str(row[1]).strip()
+                    if valore not in ["nan", "", "None", "#DIV/0!"]:
+                        return valore
         return "--"
     except:
         return "--"
@@ -102,15 +92,15 @@ st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</stro
 # 🚨 PARTE 1: PARAMETRI CLINICI
 st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI PRIORITARI</div>', unsafe_allow_html=True)
 
-press_sist = ottieni_valore(df_riep, ["sistole", "sistolica"])
-press_diast = ottieni_valore(df_riep, ["diastolica", "diastole"])
-fc_sonno = ottieni_valore(df_riep, ["frequenza battiti a riposo", "sonno media frequenza", "fc sonno"])
-fc_diurna = ottieni_valore(df_riep, ["media frequenza cardiaca diurna", "tempo medio sveglio", "fc diurna"])
-fc_min_max = ottieni_valore(df_riep, ["analisi fc massima e minima", "range fc"])
-ecg = ottieni_valore(df_riep, ["esito ecg registrato", "tracciato ecg"])
-spo2 = ottieni_valore(df_riep, ["ossigeno nel sangue", "spo2"])
-ore_cpap = ottieni_valore(df_riep, ["media ore utilizzo cpap", "ore cpap"])
-risvegli = ottieni_valore(df_riep, ["media risvegli notturni", "interruzioni notturne"])
+press_sist = ottieni_valore_esatto(df_riep, "sistole Media Pressione Sistolica")
+press_diast = ottieni_valore_esatto(df_riep, "Media Pressione Diastolica")
+fc_sonno = ottieni_valore_esatto(df_riep, "FC media durante il sonno")
+fc_diurna = ottieni_valore_esatto(df_riep, "FC tempo medio sveglio")
+fc_min_max = ottieni_valore_esatto(df_riep, "Analisi FC Massima e Minima")
+ecg = ottieni_valore_esatto(df_riep, "ECG Ultimo Esito ECG Registrato")
+spo2 = ottieni_valore_esatto(df_riep, "SpO2 durante il sonno")
+ore_cpap = ottieni_valore_esatto(df_riep, "Media Ore Utilizzo CPAP")
+risvegli = ottieni_valore_esatto(df_riep, "interruzioni notturne Media Risvegli")
 
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Arteriosa (Media 7gg)</div><div class="metric-value">{press_sist} / {press_diast} <span style="font-size:16px;">mmHg</span></div><div class="metric-status">Target clinico ipertensione: < 130-140 / 80-85 mmHg</div></div>', unsafe_allow_html=True)
 
@@ -135,13 +125,13 @@ st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Risve
 # 📊 PARTE 2: INDICATORI DI BENESSERE
 st.markdown('<div class="section-header">📊 INDICATORI DI BENESSERE E STILE DI VITA</div>', unsafe_allow_html=True)
 
-punteggio_val = ottieni_valore(df_riep, ["punteggio di salute odierno", "punteggio di salute"])
-passi = ottieni_valore(df_riep, ["passi media settimanale", "passi medi"])
-durata_sonno = ottieni_valore(df_riep, ["media ore di sonno", "durata sonno"])
-sonno_prof = ottieni_valore(df_riep, ["profondità del sonno giudizio", "profondità sonno"])
-hrv = ottieni_valore(df_riep, ["variabilità cardiaca", "hrv"])
-stress = ottieni_valore(df_riep, ["livello di stress stimato", "stress"])
-vo2max = ottieni_valore(df_riep, ["livello di fitness vo2 max", "vo2 max"])
+punteggio_val = ottieni_valore_esatto(df_riep, "Punteggio di Salute Odierno")
+passi = ottieni_valore_esatto(df_riep, "PASSI MEDIA SETTIMANALE")
+durata_sonno = ottieni_valore_esatto(df_riep, "Media Ore di Sonno (7gg)")
+sonno_prof = ottieni_valore_esatto(df_riep, "profondità del sonno giudizio")
+hrv = ottieni_valore_esatto(df_riep, "HRV durante il sonno")
+stress = ottieni_valore_esatto(df_riep, "Livello di Stress Stimato")
+vo2max = ottieni_valore_esatto(df_riep, "livello di fitness VO2 MAX")
 
 st.markdown(f'''
     <div class="punteggio-card">
@@ -181,4 +171,4 @@ if df_cron is not None and not df_cron.empty:
                 fig.update_layout(title=dict(text=titolo_grafico, font=dict(size=14)), xaxis_title="", yaxis_title="bpm", height=280, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-    disegna_grafico('Frequenza Cardiac', '❤️ Tendenza Frequenza Cardiaca (bpm)', '#2ECC71')
+    disegna_grafico('FC tempo medio sveglio', '❤️ Tendenza Frequenza Cardiaca (bpm)', '#2ECC71')
