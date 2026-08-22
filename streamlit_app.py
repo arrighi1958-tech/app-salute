@@ -81,18 +81,31 @@ def carica_dati(url):
     except Exception:
         return None
 
-# LOGICA DI FORMATTAZIONE CONDIZIONALE PER OGNI RIGA DEL PANNELLO (B3:B34)
+# LOGICA DI FORMATTAZIONE CONDIZIONALE PER OGNI RIGA DEL PANNELLO
 def calcola_formattazione_condizionale(label, valore):
     lbl = str(label).strip().lower()
     val_str = str(valore).strip().lower()
 
-    # Tentativo di estrazione valore numerico
     val_num = None
     try:
         clean_val = val_str.replace('%', '').replace(',', '.').strip()
         val_num = float(clean_val)
     except ValueError:
         pass
+
+    # PRESSIONE UNIFICATA
+    if "pressione arteriosa" in lbl:
+        try:
+            parti = val_str.replace("mmhg", "").strip().split("/")
+            sist = float(parti[0].replace(',', '.').strip())
+            diast = float(parti[1].replace(',', '.').strip())
+            if sist <= 130 and diast <= 85:
+                return "bg-green", "text-green", "Target Clinico Ipertensione Rispettato"
+            if sist <= 140 and diast <= 90:
+                return "bg-yellow", "text-yellow", "Valore Borderline"
+            return "bg-red", "text-red", "Pressione Elevata"
+        except Exception:
+            return "bg-green", "text-green", "Target Clinico Ipertensione"
 
     # B3: PASSI MEDIA SETTIMANALE
     if "passi media settimanale" in lbl:
@@ -139,20 +152,6 @@ def calcola_formattazione_condizionale(label, valore):
             if val_num >= 95: return "bg-green", "text-green", "Saturazione Ottimale"
             if val_num >= 90: return "bg-yellow", "text-yellow", "Saturazione Moderata"
         return "bg-red", "text-red", "Saturazione Bassa"
-
-    # B11: SISTOLE MEDIA
-    if "sistole" in lbl:
-        if val_num is not None:
-            if 115 <= val_num <= 130: return "bg-green", "text-green", "Ottimale"
-            if 131 <= val_num <= 140: return "bg-yellow", "text-yellow", "Borderline"
-        return "bg-red", "text-red", "Fuori Soglia"
-
-    # B12: DIASTOLE MEDIA
-    if "diastolica" in lbl:
-        if val_num is not None:
-            if 70 <= val_num <= 79: return "bg-green", "text-green", "Ottimale"
-            if 80 <= val_num <= 89: return "bg-yellow", "text-yellow", "Borderline"
-        return "bg-red", "text-red", "Fuori Soglia"
 
     # B13: ECG ULTIMO ESITO
     if "ecg" in lbl:
@@ -293,33 +292,48 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# RENDERING DINAMICO DI TUTTE LE RIGHE DEL PANNELLO (B3:B34) CON FORMATTAZIONE CONDIZIONALE
+# RENDERING DINAMICO CON UNIFICAZIONE PRESSIONE
 if df_p is not None:
-    # Filtra e recupera tutte le righe dal Pannello
-    items_pressione = []
     items_salute = []
     items_sonno = []
     items_attivita = []
+
+    sistole_val = None
+    diastole_val = None
 
     for idx, row in df_p.iterrows():
         if len(row) >= 2 and pd.notna(row[0]) and str(row[0]).strip() != "":
             label = str(row[0]).strip()
             valore = str(row[1]).strip() if pd.notna(row[1]) else "--"
 
-            # Salta eventuali intestazioni di sezione
+            lbl_lower = label.lower()
+
             if label.lower() in ["stile di vita e attività", "salute del cuore (medie storiche)", "qualità del sonno e recupero", "pannello di controllo generale", "date (data)"]:
+                continue
+
+            # INTERCETTA SISTOLE E DIASTOLE PER UNIRLE
+            if "sistole" in lbl_lower:
+                sistole_val = valore
+                continue
+            if "diastolica" in lbl_lower:
+                diastole_val = valore
                 continue
 
             bg_class, text_class, note = calcola_formattazione_condizionale(label, valore)
             item_tuple = (label, valore, bg_class, text_class, note)
 
-            lbl_lower = label.lower()
-            if "pressione" in lbl_lower or "sistole" in lbl_lower or "diastole" in lbl_lower or "fc tempo medio" in lbl_lower or "ecg" in lbl_lower or "salute" in lbl_lower or "stress" in lbl_lower or "apnea" in lbl_lower:
+            if "fc tempo medio" in lbl_lower or "ecg" in lbl_lower or "salute" in lbl_lower or "stress" in lbl_lower or "apnea" in lbl_lower:
                 items_salute.append(item_tuple)
             elif "sonno" in lbl_lower or "risvegli" in lbl_lower or "temperatura" in lbl_lower or "respirat" in lbl_lower or "recupero" in lbl_lower or "cpap" in lbl_lower or "hrv" in lbl_lower:
                 items_sonno.append(item_tuple)
             else:
                 items_attivita.append(item_tuple)
+
+    # SE PRESENTI SISTOLE E DIASTOLE, CREA LA CARD PRESSIONE UNIFICATA IN CIMA A SALUTE
+    if sistole_val and diastole_val:
+        press_val = f"{sistole_val} / {diastole_val} mmHg"
+        bg_class, text_class, note = calcola_formattazione_condizionale("Pressione Arteriosa", press_val)
+        items_salute.insert(0, ("Pressione Arteriosa (Media 7gg)", press_val, bg_class, text_class, note))
 
     # SEZIONE 1: SALUTE E VITALI
     if items_salute:
@@ -363,7 +377,7 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-# SEZIONE GRAFICO CON MENU A TENDINA (LETTURA DA STORICO DATI_WITHINGS)
+# SEZIONE GRAFICO CON MENU A TENDINA (STORICO DATI_WITHINGS)
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_w is not None and len(df_w) > 1:
