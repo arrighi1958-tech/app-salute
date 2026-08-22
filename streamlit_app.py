@@ -113,6 +113,18 @@ def carica_withings(url):
     except Exception:
         return None
 
+def converti_ore_decimale(val):
+    val_str = str(val).strip().replace(',', '.')
+    if ':' in val_str:
+        parts = val_str.split(':')
+        ore = float(parts[0]) if len(parts) > 0 and parts[0].isdigit() else 0
+        minuti = float(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+        return round(ore + (minuti / 60), 2)
+    try:
+        return float(val_str)
+    except ValueError:
+        return 0.0
+
 def analizza_parametro(label, valore):
     lbl = str(label).lower()
     val_str = str(valore).strip().lower()
@@ -253,7 +265,6 @@ st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>'
 
 if df_w is not None and not df_w.empty:
     try:
-        # Troviamo la colonna Data
         col_data = [c for c in df_w.columns if "date" in c.lower() or "data" in c.lower()][0]
         
         df_plot = df_w.copy()
@@ -323,13 +334,15 @@ if df_w is not None and not df_w.empty:
             st.plotly_chart(fig, use_container_width=True)
 
         elif "CPAP" in opzione_grafico:
-            col_cpap = [c for c in df_plot.columns if "cpap" in c.lower()][0]
-            df_plot[col_cpap] = pd.to_numeric(df_plot[col_cpap].astype(str).str.replace(',', '.'), errors='coerce')
+            col_cpap = [c for c in df_plot.columns if "cpap" in c.lower()]
+            nome_col = col_cpap[0]
+            
+            df_plot['CPAP_Numerico'] = df_plot[nome_col].apply(converti_ore_decimale)
             
             fig = px.bar(
-                df_plot, x=col_data, y=col_cpap,
+                df_plot, x=col_data, y='CPAP_Numerico',
                 title="Ore Terapia CPAP Utilizzate per Notte",
-                labels={col_data: "Data", col_cpap: "Ore CPAP"}
+                labels={col_data: "Data", 'CPAP_Numerico': "Ore CPAP"}
             )
             fig.add_hline(y=4.0, line_dash="dash", line_color="red", annotation_text="Soglia Aderenza Minima (4 ore)")
             st.plotly_chart(fig, use_container_width=True)
@@ -346,4 +359,4 @@ if df_w is not None and not df_w.empty:
             st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"Si è verificato un problema nella lettura delle colonne: {e}")
+        st.error(f"Si è verificato un errore durante la lettura dei dati: {e}")
