@@ -71,32 +71,98 @@ def carica_dati(url):
     except Exception:
         return None
 
-# MAPPATURA SPECIFICA PERICOLI E NOTE IN BASE AI PARAMETRI
-def ottieni_stile_e_nota(label, valore):
+def calcola_formattazione_condizionale(label, valore):
     lbl = str(label).lower()
-    val = str(valore).lower()
+    val_str = str(valore).strip().lower()
     
-    # 1. ROSSO (Valori mancanti o alterati)
-    if "range fc" in lbl or valore == "--" or "elevato" in val:
-        return "border-red", "text-red", "Monitoraggio picchi e minimi bradicardici"
-        
-    # 2. VERDE (CPAP, SpO2, Valori ottimali)
-    if "cpap" in lbl:
-        return "border-green", "text-green", "Aderenza alla terapia di ventilazione notturna"
-    if "spo2" in lbl or "saturazione" in lbl:
-        return "border-green", "text-green", "Efficienza respiratoria notturna under-CPAP"
-    if any(w in val for w in ["ottimale", "buono", "raggiunto", "basso / assente"]):
-        return "border-green", "text-green", "Parametro nei limiti di riferimento"
+    # 1. VALORI MANCANTI -> ROSSO
+    if val_str in ["--", "", "nan", "none", "n/a"]:
+        return "border-red", "text-red", "Dato non pervenuto / Monitoraggio richiesto"
 
-    # 3. GIALLO (Risvegli, Nicturia, Stress)
-    if "risvegli" in lbl or "interruzioni" in lbl or "stress" in lbl:
-        return "border-yellow", "text-yellow", "Interruzioni notturne legate a riposo / prostata"
-        
-    # 4. BLU (ECG, Pressione, Standard)
-    if "ecg" in lbl or "sinusale" in val:
-        return "border-blue", "text-blue", "Controllo aritmie / Fibrillazione Atriale"
-        
-    return "border-blue", "text-blue", "Indicatore di benessere"
+    # Estrazione eventuale valore numerico
+    val_num = None
+    try:
+        # Pulisce stringhe con percentuali o virgole per estrarre numeri
+        clean_val = val_str.replace('%', '').replace(',', '.').strip()
+        val_num = float(clean_val)
+    except ValueError:
+        pass
+
+    # 2. VALUTAZIONE SPECIFICA DEI PARAMETRI
+
+    # SpO2 / Saturazione
+    if "spo2" in lbl or "saturazione" in lbl:
+        if val_num is not None:
+            if val_num < 95.0:
+                return "border-red", "text-red", "Saturazione bassa under-CPAP"
+            elif val_num >= 95.0:
+                return "border-green", "text-green", "Efficienza respiratoria notturna ottima"
+
+    # CPAP Utilizzo
+    if "cpap" in lbl:
+        if val_num is not None:
+            if val_num < 4.0:
+                return "border-red", "text-red", "Aderenza CPAP insufficiente (< 4 ore)"
+            elif val_num < 6.0:
+                return "border-yellow", "text-yellow", "Aderenza CPAP moderata"
+            else:
+                return "border-green", "text-green", "Aderenza alla terapia di ventilazione notturna"
+
+    # Risvegli / Interruzioni
+    if "risvegli" in lbl or "interruzioni" in lbl:
+        if val_num is not None:
+            if val_num > 4.0:
+                return "border-red", "text-red", "Frequenti interruzioni notturne"
+            elif val_num >= 2.0:
+                return "border-yellow", "text-yellow", "Interruzioni notturne legate a riposo / prostata"
+            else:
+                return "border-green", "text-green", "Qualità del sonno e continuità ottimali"
+
+    # Pressione Sistolica
+    if "sistole" in lbl or "massima" in lbl:
+        if val_num is not None:
+            if val_num > 135:
+                return "border-red", "text-red", "Valore di pressione massima elevato"
+            elif val_num > 125:
+                return "border-yellow", "text-yellow", "Pressione massima borderline"
+            else:
+                return "border-green", "text-green", "Pressione massima nella norma"
+
+    # HRV / Variabilità Cardiaca
+    if "hrv" in lbl:
+        if val_num is not None:
+            if val_num < 20:
+                return "border-red", "text-red", "Variabilità cardiaca ridotta (Recupero basso)"
+            elif val_num < 35:
+                return "border-yellow", "text-yellow", "Variabilità cardiaca nella media"
+            else:
+                return "border-green", "text-green", "Ottimo livello di variabilità cardiaca"
+
+    # Stress
+    if "stress" in lbl:
+        if "alto" in val_str or "elevato" in val_str:
+            return "border-red", "text-red", "Livello di stress elevato"
+        elif "moderato" in val_str or "medio" in val_str:
+            return "border-yellow", "text-yellow", "Consigliato riposo attivo"
+        else:
+            return "border-green", "text-green", "Livello di stress ottimale"
+
+    # ECG
+    if "ecg" in lbl or "tracciato" in lbl:
+        if "sinusale" in val_str:
+            return "border-blue", "text-blue", "Controllo aritmie / Ritmo Sinusale"
+        elif any(w in val_str for w in ["aritmia", "fibrillazione", "anomalo"]):
+            return "border-red", "text-red", "Anomalia rilevata nel tracciato"
+
+    # Target / Obiettivi
+    if "raggiungimento" in lbl or "obiettivi" in lbl or "target" in lbl:
+        if "raggiunto" in val_str:
+            return "border-green", "text-green", "Target giornaliero completato"
+        else:
+            return "border-yellow", "text-yellow", "Target in corso di completamento"
+
+    # Predefinito per parametri informativi standard (Pas, Giorni Analizzati, ecc.)
+    return "border-blue", "text-blue", "Indicatore di monitoraggio generale"
 
 df_p = carica_dati(URL_PANNELLO)
 df_c = carica_dati(URL_CRONOLOGIA)
@@ -116,7 +182,7 @@ if df_p is not None:
     
     cols = st.columns(3)
     for index, (lbl, val) in enumerate(items):
-        cls_border, cls_text, nota = ottieni_stile_e_nota(lbl, val)
+        cls_border, cls_text, nota = calcola_formattazione_condizionale(lbl, val)
         col = cols[index % 3]
         with col:
             st.markdown(f'''
