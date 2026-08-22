@@ -98,9 +98,18 @@ URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format
 URL_WITHINGS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
 
 @st.cache_data(ttl=2)
-def carica_dati(url):
+def carica_pannello(url):
     try:
         return pd.read_csv(url, header=None)
+    except Exception:
+        return None
+
+@st.cache_data(ttl=2)
+def carica_withings(url):
+    try:
+        df = pd.read_csv(url)
+        df.columns = df.columns.str.strip()
+        return df
     except Exception:
         return None
 
@@ -162,8 +171,8 @@ def analizza_parametro(label, valore):
 
     return "border-blue", "text-blue", f"Parametro generale • {tipo_tempo}", 3
 
-df_p = carica_dati(URL_PANNELLO)
-df_w = carica_dati(URL_WITHINGS)
+df_p = carica_pannello(URL_PANNELLO)
+df_w = carica_withings(URL_WITHINGS)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
@@ -183,9 +192,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if df_p is not None:
-    gruppo_vitali = []
-    gruppo_sonno = []
-    gruppo_generale = []
+    gruppo_vitali, gruppo_sonno, gruppo_generale = [], [], []
     
     for idx, row in df_p.iterrows():
         if len(row) >= 2 and pd.notna(row[0]) and str(row[0]).strip() != "":
@@ -241,86 +248,96 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-# SEZIONE GRAFICI CLINICI INTERATTIVI
+# SEZIONE GRAFICI CLINICI
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
-if df_w is not None and len(df_w) > 1:
+if df_w is not None and not df_w.empty:
     try:
-        # Normalizzazione intestazioni da Dati_Withings
-        df_plot = df_w.copy()
-        df_plot.columns = df_plot.iloc[0].astype(str).str.strip()
-        df_plot = df_plot[1:].reset_index(drop=True)
+        # Troviamo la colonna Data
+        col_data = [c for c in df_w.columns if "date" in c.lower() or "data" in c.lower()][0]
         
-        col_data = df_plot.columns[0]
+        df_plot = df_w.copy()
         df_plot[col_data] = pd.to_datetime(df_plot[col_data], dayfirst=True, errors='coerce')
         df_plot = df_plot.dropna(subset=[col_data]).sort_values(by=col_data)
 
-        # Selezione dei grafici clinici per il medico
         opzione_grafico = st.selectbox(
-            "Seleziona il quadro clinico da analizzare:",
+            "Seleziona il quadro clinico da analizzare per il medico:",
             [
                 "🫀 Pressione Arteriosa (Sistolica / Diastolica)",
-                "🫁 Saturazione Ossigeno (SpO2 %) e Utilizzo CPAP",
+                "🫁 Saturazione Ossigeno (SpO2 %) under-CPAP",
                 "🌙 Interruzioni Notturne / Risvegli (Nicturia)",
-                "⚡ Variabilità Cardiaca (HRV) e Frequenza Cardiaca",
+                "⚡ Variabilità Cardiaca (HRV)",
+                "🌬️ Ore Utilizzo CPAP",
                 "📊 Punteggio Qualità del Sonno"
             ]
         )
 
         if "Pressione Arteriosa" in opzione_grafico:
-            col_sist = [c for c in df_plot.columns if "sistole" in c.lower() or "sistolica" in c.lower()]
-            col_diast = [c for c in df_plot.columns if "dias" in c.lower() or "diastolica" in c.lower()]
+            col_sist = [c for c in df_plot.columns if "sistole" in c.lower()][0]
+            col_diast = [c for c in df_plot.columns if "dias" in c.lower()][0]
             
-            if col_sist and col_diast:
-                df_plot[col_sist[0]] = pd.to_numeric(df_plot[col_sist[0]].astype(str).str.replace(',', '.'), errors='coerce')
-                df_plot[col_diast[0]] = pd.to_numeric(df_plot[col_diast[0]].astype(str).str.replace(',', '.'), errors='coerce')
-                
-                fig = px.line(
-                    df_plot, x=col_data, y=[col_sist[0], col_diast[0]],
-                    markers=True, title="Andamento Pressione Arteriosa (Sistolica / Diastolica)",
-                    labels={col_data: "Data", "value": "mmHg", "variable": "Parametro"}
-                )
-                fig.add_hline(y=135, line_dash="dash", line_color="red", annotation_text="Soglia Sistolica (135)")
-                fig.add_hline(y=85, line_dash="dash", line_color="orange", annotation_text="Soglia Diastolica (85)")
-                st.plotly_chart(fig, use_container_width=True)
+            df_plot[col_sist] = pd.to_numeric(df_plot[col_sist].astype(str).str.replace(',', '.'), errors='coerce')
+            df_plot[col_diast] = pd.to_numeric(df_plot[col_diast].astype(str).str.replace(',', '.'), errors='coerce')
+            
+            fig = px.line(
+                df_plot, x=col_data, y=[col_sist, col_diast],
+                markers=True, title="Andamento Pressione Arteriosa (Sistolica / Diastolica)",
+                labels={col_data: "Data", "value": "mmHg", "variable": "Parametro"}
+            )
+            fig.add_hline(y=135, line_dash="dash", line_color="red", annotation_text="Soglia Sistolica (135)")
+            fig.add_hline(y=85, line_dash="dash", line_color="orange", annotation_text="Soglia Diastolica (85)")
+            st.plotly_chart(fig, use_container_width=True)
 
         elif "Saturazione" in opzione_grafico:
-            col_spo2 = [c for c in df_plot.columns if "spo2" in c.lower()]
-            if col_spo2:
-                df_plot[col_spo2[0]] = pd.to_numeric(df_plot[col_spo2[0]].astype(str).str.replace(',', '.'), errors='coerce')
-                fig = px.line(
-                    df_plot, x=col_data, y=col_spo2[0],
-                    markers=True, title="Andamento Saturazione Ossigeno (SpO2 %) under-CPAP",
-                    labels={col_data: "Data", col_spo2[0]: "SpO2 %"}
-                )
-                fig.add_hline(y=95, line_dash="dash", line_color="green", annotation_text="Target Minimo (95%)")
-                st.plotly_chart(fig, use_container_width=True)
+            col_spo2 = [c for c in df_plot.columns if "spo2" in c.lower()][0]
+            df_plot[col_spo2] = pd.to_numeric(df_plot[col_spo2].astype(str).str.replace(',', '.'), errors='coerce')
+            
+            fig = px.line(
+                df_plot, x=col_data, y=col_spo2,
+                markers=True, title="Andamento Saturazione Ossigeno (SpO2 %) under-CPAP",
+                labels={col_data: "Data", col_spo2: "SpO2 %"}
+            )
+            fig.add_hline(y=95, line_dash="dash", line_color="green", annotation_text="Target Minimo (95%)")
+            st.plotly_chart(fig, use_container_width=True)
 
         elif "Interruzioni" in opzione_grafico:
-            col_risv = [c for c in df_plot.columns if "interruz" in c.lower() or "risvegl" in c.lower()]
-            if col_risv:
-                df_plot[col_risv[0]] = pd.to_numeric(df_plot[col_risv[0]].astype(str).str.replace(',', '.'), errors='coerce')
-                fig = px.bar(
-                    df_plot, x=col_data, y=col_risv[0],
-                    title="Frequenza Interruzioni Notturne / Risvegli",
-                    labels={col_data: "Data", col_risv[0]: "Numero Risvegli"}
-                )
-                st.plotly_chart(fig, use_container_width=True)
+            col_risv = [c for c in df_plot.columns if "interruz" in c.lower() or "risvegl" in c.lower()][0]
+            df_plot[col_risv] = pd.to_numeric(df_plot[col_risv].astype(str).str.replace(',', '.'), errors='coerce')
+            
+            fig = px.bar(
+                df_plot, x=col_data, y=col_risv,
+                title="Frequenza Interruzioni Notturne / Risvegli",
+                labels={col_data: "Data", col_risv: "Numero Risvegli"}
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
         elif "Variabilità Cardiaca" in opzione_grafico:
-            col_hrv = [c for c in df_plot.columns if "hrv" in c.lower()]
-            if col_hrv:
-                df_plot[col_hrv[0]] = pd.to_numeric(df_plot[col_hrv[0]].astype(str).str.replace(',', '.'), errors='coerce')
-                fig = px.line(
-                    df_plot, x=col_data, y=col_hrv[0],
-                    markers=True, title="Variabilità della Frequenza Cardiaca (HRV)",
-                    labels={col_data: "Data", col_hrv[0]: "HRV (ms)"}
-                )
-                st.plotly_chart(fig, use_container_width=True)
+            col_hrv = [c for c in df_plot.columns if "hrv" in c.lower()][0]
+            df_plot[col_hrv] = pd.to_numeric(df_plot[col_hrv].astype(str).str.replace(',', '.'), errors='coerce')
+            
+            fig = px.line(
+                df_plot, x=col_data, y=col_hrv,
+                markers=True, title="Variabilità della Frequenza Cardiaca (HRV)",
+                labels={col_data: "Data", col_hrv: "HRV (ms)"}
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        elif "CPAP" in opzione_grafico:
+            col_cpap = [c for c in df_plot.columns if "cpap" in c.lower()][0]
+            df_plot[col_cpap] = pd.to_numeric(df_plot[col_cpap].astype(str).str.replace(',', '.'), errors='coerce')
+            
+            fig = px.bar(
+                df_plot, x=col_data, y=col_cpap,
+                title="Ore Terapia CPAP Utilizzate per Notte",
+                labels={col_data: "Data", col_cpap: "Ore CPAP"}
+            )
+            fig.add_hline(y=4.0, line_dash="dash", line_color="red", annotation_text="Soglia Aderenza Minima (4 ore)")
+            st.plotly_chart(fig, use_container_width=True)
 
         else:
-            col_qual = df_plot.columns[1]
+            col_qual = [c for c in df_plot.columns if "punteggio" in c.lower() or "qualit" in c.lower()][0]
             df_plot[col_qual] = pd.to_numeric(df_plot[col_qual].astype(str).str.replace(',', '.'), errors='coerce')
+            
             fig = px.line(
                 df_plot, x=col_data, y=col_qual,
                 markers=True, title=f"Andamento: {col_qual}",
@@ -329,4 +346,4 @@ if df_w is not None and len(df_w) > 1:
             st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.info("Visualizzazione grafico in fase di sincronizzazione...")
+        st.error(f"Si è verificato un problema nella lettura delle colonne: {e}")
