@@ -214,16 +214,16 @@ def analizza_parametro(label, valore):
 
     if "frequenza respiratoria" in lbl:
         if "minima" in lbl:
-            if is_media_7gg: # B34
+            if is_media_7gg:
                 if val_num is not None:
                     if val_num >= 12: return "border-green", "text-green", f"Resp. Minima Stabile • {tipo_tempo}", 2
                     if val_num >= 10: return "border-yellow", "text-yellow", f"Resp. Minima Bassa • {tipo_tempo}", 2
                 return "border-red", "text-red", f"Resp. Minima Critica • {tipo_tempo}", 2
-            else: # B33
+            else:
                 if val_num is not None and val_num >= 10:
                     return "border-green", "text-green", f"Resp. Minima Regolare • {tipo_tempo}", 2
                 return "border-red", "text-red", f"Resp. Minima Bassa • {tipo_tempo}", 2
-        else: # B25
+        else:
             if val_num is not None:
                 if 12 <= val_num <= 18: return "border-green", "text-green", f"Frequenza Regolare • {tipo_tempo}", 2
                 if 18 < val_num <= 20: return "border-yellow", "text-yellow", f"Frequenza Moderata • {tipo_tempo}", 2
@@ -336,7 +336,7 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-# GRAFICO STORICO
+# GRAFICO STORICO CON TENDINA
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_c is not None and len(df_c) > 1:
@@ -346,23 +346,37 @@ if df_c is not None and len(df_c) > 1:
         df_plot = df_plot[1:]
         
         col_x = df_plot.columns[0]
-        col_y = df_plot.columns[1]
         
         df_plot[col_x] = pd.to_datetime(df_plot[col_x], dayfirst=True, errors='coerce')
-        df_plot[col_y] = pd.to_numeric(df_plot[col_y].astype(str).str.replace(',', '.'), errors='coerce')
         
-        df_plot = df_plot.dropna(subset=[col_x, col_y]).sort_values(by=col_x)
+        opzioni_grafico = [col for col in df_plot.columns[1:] if str(col).strip() != ""]
         
-        if not df_plot.empty:
-            fig = px.line(
-                df_plot, 
-                x=col_x, 
-                y=col_y, 
-                markers=True, 
-                title=f"Andamento Storico: {col_y}",
-                labels={col_x: "Data", col_y: "Valore"}
+        parametro_scelto = st.selectbox(
+            "Seleziona il parametro da analizzare nel tempo:", 
+            options=opzioni_grafico
+        )
+        
+        if parametro_scelto:
+            df_plot[parametro_scelto] = pd.to_numeric(
+                df_plot[parametro_scelto].astype(str).str.replace(',', '.'), 
+                errors='coerce'
             )
-            fig.update_traces(line_color='#2980B9', line_width=3, marker_size=6)
-            st.plotly_chart(fig, use_container_width=True)
+            
+            df_clean = df_plot.dropna(subset=[col_x, parametro_scelto]).sort_values(by=col_x)
+            
+            if not df_clean.empty:
+                fig = px.line(
+                    df_clean, 
+                    x=col_x, 
+                    y=parametro_scelto, 
+                    markers=True, 
+                    title=f"Andamento Storico: {parametro_scelto}",
+                    labels={col_x: "Data", parametro_scelto: "Valore"}
+                )
+                fig.update_traces(line_color='#2980B9', line_width=3, marker_size=6)
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Nessun dato numerico valido trovato per il parametro selezionato.")
+                
     except Exception:
-        st.info("Aggiornamento grafico in corso...")
+        st.info("Impossibile caricare il grafico dei dati storici.")
