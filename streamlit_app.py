@@ -5,11 +5,42 @@ import plotly.express as px
 # CONFIGURAZIONE PAGINA
 st.set_page_config(page_title="Pannello Clinico Renato", page_icon="🩺", layout="wide")
 
-# CSS DEDICATO
+# CSS DEDICATO PER RIPRODURRE LO STILE CLINICO E INTESTAZIONE PAZIENTE
 st.markdown("""
     <style>
     .stApp { background-color: #F4F6F9; }
     
+    /* SCHEDA PROFILO PAZIENTE */
+    .patient-header {
+        background-color: #FFFFFF;
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border-left: 8px solid #1B4F72;
+    }
+    .patient-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #1B4F72;
+        margin-bottom: 8px;
+    }
+    .patient-info {
+        font-size: 14px;
+        color: #2C3E50;
+        line-height: 1.6;
+    }
+    .badge-tag {
+        background-color: #EBF5FB;
+        color: #1B4F72;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 12px;
+        margin-right: 6px;
+    }
+
+    /* CARD DEI PARAMETRI */
     .card-container {
         background-color: #ffffff;
         border-radius: 14px;
@@ -39,7 +70,7 @@ st.markdown("""
         font-weight: 600;
     }
     
-    /* VARIANTI COLORE */
+    /* VARIANTI COLORE BORDI E TESTI */
     .border-red { border-left-color: #E74C3C; }
     .text-red { color: #C0392B; }
     
@@ -75,11 +106,9 @@ def analizza_parametro(label, valore):
     lbl = str(label).lower()
     val_str = str(valore).strip().lower()
     
-    # Riconoscimento se Media 7gg o Giornaliero
     is_media_7gg = "7gg" in lbl or "media" in lbl or "settimanale" in lbl
     tipo_tempo = "(Media 7 giorni)" if is_media_7gg else "(Valore Giornaliero)"
 
-    # Estrazione numero
     val_num = None
     try:
         clean_val = val_str.replace('%', '').replace(',', '.').strip()
@@ -145,8 +174,22 @@ df_c = carica_dati(URL_CRONOLOGIA)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
+# SEZIONE INFORMATIVA PROFILO PAZIENTE
+st.markdown("""
+    <div class="patient-header">
+        <div class="patient-title">👤 Profilo Paziente — 68 Anni</div>
+        <div class="patient-info">
+            <b>Quadri clinici e terapie in corso:</b><br>
+            <span class="badge-tag">Terapia Antipertensiva</span>
+            <span class="badge-tag">Beta-Bloccanti (Bradicardia)</span>
+            <span class="badge-tag">Terapia Anticoagulante a Vita</span>
+            <span class="badge-tag">Terapia Ventilatoria CPAP</span>
+            <span class="badge-tag">Prostata / Nicturia</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
+
 if df_p is not None:
-    # Organizzazione in gruppi di priorità medica
     gruppo_vitali = []
     gruppo_sonno = []
     gruppo_generale = []
