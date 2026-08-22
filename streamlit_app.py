@@ -5,7 +5,7 @@ import plotly.express as px
 # CONFIGURAZIONE PAGINA
 st.set_page_config(page_title="Pannello Clinico Renato", page_icon="🩺", layout="wide")
 
-# CSS DEDICATO PER RIPRODURRE LO STILE CLINICO E INTESTAZIONE PAZIENTE
+# CSS DEDICATO STILE CLINICO
 st.markdown("""
     <style>
     .stApp { background-color: #F4F6F9; }
@@ -38,9 +38,11 @@ st.markdown("""
         font-weight: 700;
         font-size: 12px;
         margin-right: 6px;
+        display: inline-block;
+        margin-bottom: 4px;
     }
 
-    /* CARD DEI PARAMETRI */
+    /* CARD PARAMETRI */
     .card-container {
         background-color: #ffffff;
         border-radius: 14px;
@@ -70,7 +72,7 @@ st.markdown("""
         font-weight: 600;
     }
     
-    /* VARIANTI COLORE BORDI E TESTI */
+    /* VARIANTI COLORE */
     .border-red { border-left-color: #E74C3C; }
     .text-red { color: #C0392B; }
     
@@ -93,7 +95,7 @@ st.markdown("""
 SHEET_ID = "1sKNtsluKQKPwqA-YToNexsHa0Gu7-Nnx8pCv628qeog"
 
 URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
-URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
+URL_WITHINGS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
 
 @st.cache_data(ttl=2)
 def carica_dati(url):
@@ -116,17 +118,14 @@ def analizza_parametro(label, valore):
     except ValueError:
         pass
 
-    # 1. PARAMETRI MANCANTI
     if val_str in ["--", "", "nan", "none", "n/a"]:
         return "border-red", "text-red", f"Dato non registrato • {tipo_tempo}", 1
 
-    # 2. SATURAZIONE SPO2 (Alta priorità)
     if "spo2" in lbl or "saturazione" in lbl:
         if val_num is not None and val_num < 95.0:
             return "border-red", "text-red", f"Saturazione bassa under-CPAP • {tipo_tempo}", 1
         return "border-green", "text-green", f"Efficienza respiratoria notturna • {tipo_tempo}", 1
 
-    # 3. PRESSIONE ARTERIOSA
     if "sistole" in lbl or "diastolica" in lbl or "pressione" in lbl:
         if val_num is not None and val_num > 135:
             return "border-red", "text-red", f"Pressione elevata • {tipo_tempo}", 1
@@ -134,13 +133,11 @@ def analizza_parametro(label, valore):
             return "border-yellow", "text-yellow", f"Pressione borderline • {tipo_tempo}", 1
         return "border-green", "text-green", f"Pressione nella norma • {tipo_tempo}", 1
 
-    # 4. TRACCIATO ECG
     if "ecg" in lbl or "tracciato" in lbl:
         if "sinusale" in val_str:
             return "border-blue", "text-blue", f"Ritmo Sinusale / Regolare • {tipo_tempo}", 1
         return "border-red", "text-red", f"Anomalia ritmo rilevata • {tipo_tempo}", 1
 
-    # 5. UTILIZZO CPAP
     if "cpap" in lbl:
         if val_num is not None and val_num < 4.0:
             return "border-red", "text-red", f"Aderenza CPAP insufficiente (<4h) • {tipo_tempo}", 1
@@ -148,7 +145,6 @@ def analizza_parametro(label, valore):
             return "border-yellow", "text-yellow", f"Aderenza CPAP moderata • {tipo_tempo}", 1
         return "border-green", "text-green", f"Aderenza terapia ventilatoria • {tipo_tempo}", 1
 
-    # 6. INTERRUZIONI NOTTURNE / RISVEGLI
     if "risvegli" in lbl or "interruzioni" in lbl:
         if val_num is not None and val_num > 4.0:
             return "border-red", "text-red", f"Risvegli frequenti • {tipo_tempo}", 2
@@ -156,25 +152,22 @@ def analizza_parametro(label, valore):
             return "border-yellow", "text-yellow", f"Interruzioni notturne / prostata • {tipo_tempo}", 2
         return "border-green", "text-green", f"Continuità sonno ottimale • {tipo_tempo}", 2
 
-    # 7. HRV E STRESS
     if "hrv" in lbl or "stress" in lbl:
         if "moderato" in val_str or (val_num is not None and val_num < 20):
             return "border-yellow", "text-yellow", f"Consigliato riposo attivo • {tipo_tempo}", 2
         return "border-green", "text-green", f"Livello di recupero idoneo • {tipo_tempo}", 2
 
-    # 8. ATTIVITÀ FISICA E PASSI
     if "passi" in lbl or "target" in lbl:
         return "border-green", "text-green", f"Obiettivo movimento • {tipo_tempo}", 3
 
-    # DEFAULT INFORMATIVO
     return "border-blue", "text-blue", f"Parametro generale • {tipo_tempo}", 3
 
 df_p = carica_dati(URL_PANNELLO)
-df_c = carica_dati(URL_CRONOLOGIA)
+df_w = carica_dati(URL_WITHINGS)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
-# SEZIONE INFORMATIVA PROFILO PAZIENTE
+# SEZIONE PROFILO PAZIENTE
 st.markdown("""
     <div class="patient-header">
         <div class="patient-title">👤 Profilo Paziente — 68 Anni</div>
@@ -209,7 +202,6 @@ if df_p is not None:
                 else:
                     gruppo_generale.append(item)
 
-    # RENDER GRUPPO 1: PARAMETRI VITALI E CPAP (Massima priorità)
     if gruppo_vitali:
         st.markdown('<div class="section-header">🚨 PARAMETRI VITALI E TERAPIA (Priorità Medica)</div>', unsafe_allow_html=True)
         cols = st.columns(3)
@@ -223,7 +215,6 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-    # RENDER GRUPPO 2: QUALITÀ DEL SONNO E RECUPERO
     if gruppo_sonno:
         st.markdown('<div class="section-header">🌙 SONNO, RESPIRAZIONE E RECUPERO</div>', unsafe_allow_html=True)
         cols = st.columns(3)
@@ -237,7 +228,6 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-    # RENDER GRUPPO 3: ATTIVITÀ FISICA E MONITORAGGIO GENERALE
     if gruppo_generale:
         st.markdown('<div class="section-header">🏃 STILE DI VITA E ATTIVITÀ</div>', unsafe_allow_html=True)
         cols = st.columns(3)
@@ -251,33 +241,92 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-# GRAFICO STORICO
+# SEZIONE GRAFICI CLINICI INTERATTIVI
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
-if df_c is not None and len(df_c) > 1:
+if df_w is not None and len(df_w) > 1:
     try:
-        df_plot = df_c.copy()
-        df_plot.columns = df_plot.iloc[0]
-        df_plot = df_plot[1:]
+        # Normalizzazione intestazioni da Dati_Withings
+        df_plot = df_w.copy()
+        df_plot.columns = df_plot.iloc[0].astype(str).str.strip()
+        df_plot = df_plot[1:].reset_index(drop=True)
         
-        col_x = df_plot.columns[0]
-        col_y = df_plot.columns[1]
-        
-        df_plot[col_x] = pd.to_datetime(df_plot[col_x], dayfirst=True, errors='coerce')
-        df_plot[col_y] = pd.to_numeric(df_plot[col_y].astype(str).str.replace(',', '.'), errors='coerce')
-        
-        df_plot = df_plot.dropna(subset=[col_x, col_y]).sort_values(by=col_x)
-        
-        if not df_plot.empty:
+        col_data = df_plot.columns[0]
+        df_plot[col_data] = pd.to_datetime(df_plot[col_data], dayfirst=True, errors='coerce')
+        df_plot = df_plot.dropna(subset=[col_data]).sort_values(by=col_data)
+
+        # Selezione dei grafici clinici per il medico
+        opzione_grafico = st.selectbox(
+            "Seleziona il quadro clinico da analizzare:",
+            [
+                "🫀 Pressione Arteriosa (Sistolica / Diastolica)",
+                "🫁 Saturazione Ossigeno (SpO2 %) e Utilizzo CPAP",
+                "🌙 Interruzioni Notturne / Risvegli (Nicturia)",
+                "⚡ Variabilità Cardiaca (HRV) e Frequenza Cardiaca",
+                "📊 Punteggio Qualità del Sonno"
+            ]
+        )
+
+        if "Pressione Arteriosa" in opzione_grafico:
+            col_sist = [c for c in df_plot.columns if "sistole" in c.lower() or "sistolica" in c.lower()]
+            col_diast = [c for c in df_plot.columns if "dias" in c.lower() or "diastolica" in c.lower()]
+            
+            if col_sist and col_diast:
+                df_plot[col_sist[0]] = pd.to_numeric(df_plot[col_sist[0]].astype(str).str.replace(',', '.'), errors='coerce')
+                df_plot[col_diast[0]] = pd.to_numeric(df_plot[col_diast[0]].astype(str).str.replace(',', '.'), errors='coerce')
+                
+                fig = px.line(
+                    df_plot, x=col_data, y=[col_sist[0], col_diast[0]],
+                    markers=True, title="Andamento Pressione Arteriosa (Sistolica / Diastolica)",
+                    labels={col_data: "Data", "value": "mmHg", "variable": "Parametro"}
+                )
+                fig.add_hline(y=135, line_dash="dash", line_color="red", annotation_text="Soglia Sistolica (135)")
+                fig.add_hline(y=85, line_dash="dash", line_color="orange", annotation_text="Soglia Diastolica (85)")
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif "Saturazione" in opzione_grafico:
+            col_spo2 = [c for c in df_plot.columns if "spo2" in c.lower()]
+            if col_spo2:
+                df_plot[col_spo2[0]] = pd.to_numeric(df_plot[col_spo2[0]].astype(str).str.replace(',', '.'), errors='coerce')
+                fig = px.line(
+                    df_plot, x=col_data, y=col_spo2[0],
+                    markers=True, title="Andamento Saturazione Ossigeno (SpO2 %) under-CPAP",
+                    labels={col_data: "Data", col_spo2[0]: "SpO2 %"}
+                )
+                fig.add_hline(y=95, line_dash="dash", line_color="green", annotation_text="Target Minimo (95%)")
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif "Interruzioni" in opzione_grafico:
+            col_risv = [c for c in df_plot.columns if "interruz" in c.lower() or "risvegl" in c.lower()]
+            if col_risv:
+                df_plot[col_risv[0]] = pd.to_numeric(df_plot[col_risv[0]].astype(str).str.replace(',', '.'), errors='coerce')
+                fig = px.bar(
+                    df_plot, x=col_data, y=col_risv[0],
+                    title="Frequenza Interruzioni Notturne / Risvegli",
+                    labels={col_data: "Data", col_risv[0]: "Numero Risvegli"}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif "Variabilità Cardiaca" in opzione_grafico:
+            col_hrv = [c for c in df_plot.columns if "hrv" in c.lower()]
+            if col_hrv:
+                df_plot[col_hrv[0]] = pd.to_numeric(df_plot[col_hrv[0]].astype(str).str.replace(',', '.'), errors='coerce')
+                fig = px.line(
+                    df_plot, x=col_data, y=col_hrv[0],
+                    markers=True, title="Variabilità della Frequenza Cardiaca (HRV)",
+                    labels={col_data: "Data", col_hrv[0]: "HRV (ms)"}
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+        else:
+            col_qual = df_plot.columns[1]
+            df_plot[col_qual] = pd.to_numeric(df_plot[col_qual].astype(str).str.replace(',', '.'), errors='coerce')
             fig = px.line(
-                df_plot, 
-                x=col_x, 
-                y=col_y, 
-                markers=True, 
-                title=f"Andamento Storico: {col_y}",
-                labels={col_x: "Data", col_y: "Valore"}
+                df_plot, x=col_data, y=col_qual,
+                markers=True, title=f"Andamento: {col_qual}",
+                labels={col_data: "Data", col_qual: "Punteggio"}
             )
-            fig.update_traces(line_color='#2980B9', line_width=3, marker_size=6)
             st.plotly_chart(fig, use_container_width=True)
-    except Exception:
-        st.info("Aggiornamento grafico in corso...")
+
+    except Exception as e:
+        st.info("Visualizzazione grafico in fase di sincronizzazione...")
