@@ -5,44 +5,11 @@ import plotly.express as px
 # CONFIGURAZIONE PAGINA
 st.set_page_config(page_title="Pannello Clinico Renato", page_icon="🩺", layout="wide")
 
-# CSS DEDICATO STILE CLINICO
+# CSS DEDICATO
 st.markdown("""
     <style>
     .stApp { background-color: #F4F6F9; }
     
-    /* SCHEDA PROFILO PAZIENTE */
-    .patient-header {
-        background-color: #FFFFFF;
-        border-radius: 12px;
-        padding: 18px 22px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border-left: 8px solid #1B4F72;
-    }
-    .patient-title {
-        font-size: 20px;
-        font-weight: 800;
-        color: #1B4F72;
-        margin-bottom: 8px;
-    }
-    .patient-info {
-        font-size: 14px;
-        color: #2C3E50;
-        line-height: 1.6;
-    }
-    .badge-tag {
-        background-color: #EBF5FB;
-        color: #1B4F72;
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 12px;
-        margin-right: 6px;
-        display: inline-block;
-        margin-bottom: 4px;
-    }
-
-    /* CARD PARAMETRI */
     .card-container {
         background-color: #ffffff;
         border-radius: 14px;
@@ -61,7 +28,7 @@ st.markdown("""
     }
     
     .card-value {
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 800;
         color: #111111;
         margin-bottom: 4px;
@@ -93,40 +60,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 SHEET_ID = "1sKNtsluKQKPwqA-YToNexsHa0Gu7-Nnx8pCv628qeog"
-
 URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
-URL_WITHINGS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
+URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
 
 @st.cache_data(ttl=2)
-def carica_pannello(url):
+def carica_dati(url):
     try:
         return pd.read_csv(url, header=None)
     except Exception:
         return None
 
-@st.cache_data(ttl=2)
-def carica_withings(url):
-    try:
-        df = pd.read_csv(url)
-        df.columns = df.columns.str.strip()
-        return df
-    except Exception:
-        return None
-
-def converti_ore_decimale(val):
-    val_str = str(val).strip().replace(',', '.')
-    if ':' in val_str:
-        parts = val_str.split(':')
-        ore = float(parts[0]) if len(parts) > 0 and parts[0].isdigit() else 0
-        minuti = float(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
-        return round(ore + (minuti / 60), 2)
-    try:
-        return float(val_str)
-    except ValueError:
-        return 0.0
-
 def analizza_parametro(label, valore):
-    lbl = str(label).lower()
+    lbl = str(label).strip().lower()
     val_str = str(valore).strip().lower()
     
     is_media_7gg = "7gg" in lbl or "media" in lbl or "settimanale" in lbl
@@ -142,69 +87,201 @@ def analizza_parametro(label, valore):
     if val_str in ["--", "", "nan", "none", "n/a"]:
         return "border-red", "text-red", f"Dato non registrato • {tipo_tempo}", 1
 
+    # 1. PASSI MEDIA SETTIMANALE (B3)
+    if "passi" in lbl:
+        if val_num is not None:
+            if val_num >= 8000: return "border-green", "text-green", f"Target Raggiunto • {tipo_tempo}", 3
+            if val_num >= 5000: return "border-yellow", "text-yellow", f"Livello Moderato • {tipo_tempo}", 3
+        return "border-red", "text-red", f"Attività Bassa • {tipo_tempo}", 3
+
+    # 2. PUNTEGGIO DI SALUTE ODIERNO (B5)
+    if "punteggio di salute" in lbl:
+        if val_num is not None:
+            if val_num >= 75: return "border-green", "text-green", f"Ottimo Stato • {tipo_tempo}", 1
+            if val_num >= 50: return "border-yellow", "text-yellow", f"Stato Moderato • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Attenzione Richiesta • {tipo_tempo}", 1
+
+    # 3. FC TEMPO MEDIO SVEGLIO (B7)
+    if "fc tempo medio" in lbl or "fc sveglio" in lbl:
+        if val_num is not None:
+            if 60 <= val_num <= 75: return "border-green", "text-green", f"FC Ottimale • {tipo_tempo}", 1
+            if 76 <= val_num <= 85: return "border-yellow", "text-yellow", f"FC Accettabile • {tipo_tempo}", 1
+        return "border-red", "text-red", f"FC Fuori Soglia • {tipo_tempo}", 1
+
+    # 4. FC MEDIA DURANTE IL SONNO (B8)
+    if "fc media" in lbl and "sonno" in lbl:
+        if val_num is not None:
+            if 50 <= val_num <= 65: return "border-green", "text-green", f"FC Notturna Ottimale • {tipo_tempo}", 1
+            if 66 <= val_num <= 75: return "border-yellow", "text-yellow", f"FC Notturna Moderata • {tipo_tempo}", 1
+        return "border-red", "text-red", f"FC Notturna Elevata • {tipo_tempo}", 1
+
+    # 5. HRV DURANTE IL SONNO (B9) & RAPPORTO HRV (B26)
+    if "hrv" in lbl:
+        if "rapporto" in lbl:
+            if val_num is not None:
+                if val_num >= 1.05: return "border-green", "text-green", f"Recupero Buono • {tipo_tempo}", 2
+                if val_num >= 0.95: return "border-yellow", "text-yellow", f"Recupero Stabile • {tipo_tempo}", 2
+            return "border-red", "text-red", f"Recupero Ridotto • {tipo_tempo}", 2
+        else:
+            if val_num is not None:
+                if val_num >= 30: return "border-green", "text-green", f"Variabilità Buona • {tipo_tempo}", 2
+                if val_num >= 15: return "border-yellow", "text-yellow", f"Variabilità Moderata • {tipo_tempo}", 2
+            return "border-red", "text-red", f"Variabilità Bassa • {tipo_tempo}", 2
+
+    # 6. SPO2 DURANTE IL SONNO (B10)
     if "spo2" in lbl or "saturazione" in lbl:
-        if val_num is not None and val_num < 95.0:
-            return "border-red", "text-red", f"Saturazione bassa under-CPAP • {tipo_tempo}", 1
-        return "border-green", "text-green", f"Efficienza respiratoria notturna • {tipo_tempo}", 1
+        if val_num is not None:
+            if val_num >= 95: return "border-green", "text-green", f"Saturazione Ottimale • {tipo_tempo}", 1
+            if val_num >= 90: return "border-yellow", "text-yellow", f"Saturazione Moderata • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Saturazione Bassa • {tipo_tempo}", 1
 
-    if "sistole" in lbl or "diastolica" in lbl or "pressione" in lbl:
-        if val_num is not None and val_num > 135:
-            return "border-red", "text-red", f"Pressione elevata • {tipo_tempo}", 1
-        elif val_num is not None and val_num > 125:
-            return "border-yellow", "text-yellow", f"Pressione borderline • {tipo_tempo}", 1
-        return "border-green", "text-green", f"Pressione nella norma • {tipo_tempo}", 1
+    # 7. PRESSIONE ARTERIOSA (B11, B12)
+    if "sistole" in lbl:
+        if val_num is not None:
+            if 115 <= val_num <= 130: return "border-green", "text-green", f"Sistole Ottimale • {tipo_tempo}", 1
+            if 131 <= val_num <= 140: return "border-yellow", "text-yellow", f"Sistole Borderline • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Sistole Fuori Soglia • {tipo_tempo}", 1
 
+    if "diastolica" in lbl:
+        if val_num is not None:
+            if 70 <= val_num <= 79: return "border-green", "text-green", f"Diastole Ottimale • {tipo_tempo}", 1
+            if 80 <= val_num <= 89: return "border-yellow", "text-yellow", f"Diastole Borderline • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Diastole Fuori Soglia • {tipo_tempo}", 1
+
+    # 8. ECG ULTIMO ESITO (B13)
     if "ecg" in lbl or "tracciato" in lbl:
-        if "sinusale" in val_str:
-            return "border-blue", "text-blue", f"Ritmo Sinusale / Regolare • {tipo_tempo}", 1
-        return "border-red", "text-red", f"Anomalia ritmo rilevata • {tipo_tempo}", 1
+        if "sinusale" in val_str: return "border-green", "text-green", f"Ritmo Sinusale • {tipo_tempo}", 1
+        if "inconcludente" in val_str: return "border-yellow", "text-yellow", f"Esito Inconcludente • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Anomalia Rilevata • {tipo_tempo}", 1
+
+    # 9. LIVELLO DI STRESS (B14)
+    if "stress" in lbl:
+        if "ottimale" in val_str or (val_num is not None and val_num < 30):
+            return "border-green", "text-green", f"Stress Basso • {tipo_tempo}", 2
+        if "moderato" in val_str or (val_num is not None and val_num <= 60):
+            return "border-yellow", "text-yellow", f"Stress Moderato • {tipo_tempo}", 2
+        return "border-red", "text-red", f"Stress Elevato • {tipo_tempo}", 2
+
+    # 10. VO2 MAX (B15)
+    if "vo2" in lbl:
+        if val_num is not None:
+            if val_num >= 40: return "border-green", "text-green", f"Capacità Ottima • {tipo_tempo}", 3
+            if val_num > 30: return "border-yellow", "text-yellow", f"Capacità Media • {tipo_tempo}", 3
+        return "border-red", "text-red", f"Capacità Bassa • {tipo_tempo}", 3
+
+    # 11. SONNO (ORE B17, PUNTEGGIO B18, INTERRUZIONI B19, QUALITÀ B20, PROFONDO B24)
+    if "interruzioni" in lbl or "risvegli" in lbl:
+        if val_num is not None:
+            if val_num < 1.5: return "border-green", "text-green", f"Sonno Continuo • {tipo_tempo}", 2
+            if val_num <= 3: return "border-yellow", "text-yellow", f"Interruzioni Moderate • {tipo_tempo}", 2
+        return "border-red", "text-red", f"Interruzioni Frequenti • {tipo_tempo}", 2
+
+    if "ore di sonno" in lbl or "ore sonno profondo" in lbl:
+        if "profondo" in lbl:
+            if val_num is not None:
+                if val_num > 1.5: return "border-green", "text-green", f"Profondo Ottimale • {tipo_tempo}", 2
+                if val_num >= 0.9: return "border-yellow", "text-yellow", f"Profondo Sufficiente • {tipo_tempo}", 2
+            return "border-red", "text-red", f"Profondo Insufficiente • {tipo_tempo}", 2
+        else:
+            if val_num is not None:
+                if 7 <= val_num <= 9: return "border-green", "text-green", f"Durata Ottimale • {tipo_tempo}", 2
+                if 6 <= val_num < 7: return "border-yellow", "text-yellow", f"Durata Accettabile • {tipo_tempo}", 2
+            return "border-red", "text-red", f"Durata Insufficiente • {tipo_tempo}", 2
+
+    if "punteggio sonno" in lbl or "qualità del sonno" in lbl:
+        if val_num is not None:
+            pct = val_num if val_num > 1 else val_num * 100
+            if pct >= 85: return "border-green", "text-green", f"Qualità Ottima • {tipo_tempo}", 2
+            if pct >= 60: return "border-yellow", "text-yellow", f"Qualità Accettabile • {tipo_tempo}", 2
+        return "border-red", "text-red", f"Qualità Bassa • {tipo_tempo}", 2
+
+    # 12. TEMPERATURA E RESPIRAZIONE SONNO (B21, B22, B23, B25, B33, B34)
+    if "temperatura" in lbl:
+        if val_num is not None:
+            if 35.0 <= val_num <= 36.9: return "border-green", "text-green", f"Temp. Normale • {tipo_tempo}", 2
+            if val_num > 37.0: return "border-red", "text-red", f"Temp. Elevata • {tipo_tempo}", 2
+        return "border-yellow", "text-yellow", f"Temp. da Monitorare • {tipo_tempo}", 2
+
+    if "qualità respiratoria" in lbl:
+        if "ottimale" in val_str: return "border-green", "text-green", f"Respirazione Ottima • {tipo_tempo}", 2
+        if "accettabile" in val_str: return "border-yellow", "text-yellow", f"Respirazione Accettabile • {tipo_tempo}", 2
+        return "border-red", "text-red", f"Da Migliorare • {tipo_tempo}", 2
+
+    if "profondità del sonno" in lbl:
+        if "buono" in val_str: return "border-green", "text-green", f"Livello Buono • {tipo_tempo}", 2
+        if "media" in val_str: return "border-yellow", "text-yellow", f"Livello Medio • {tipo_tempo}", 2
+        return "border-red", "text-red", f"Livello Scarso • {tipo_tempo}", 2
+
+    if "frequenza respiratoria" in lbl:
+        if "minima" in lbl:
+            if is_media_7gg:
+                if val_num is not None:
+                    if val_num >= 12: return "border-green", "text-green", f"Resp. Minima Stabile • {tipo_tempo}", 2
+                    if val_num >= 10: return "border-yellow", "text-yellow", f"Resp. Minima Bassa • {tipo_tempo}", 2
+                return "border-red", "text-red", f"Resp. Minima Critica • {tipo_tempo}", 2
+            else:
+                if val_num is not None and val_num >= 10:
+                    return "border-green", "text-green", f"Resp. Minima Regolare • {tipo_tempo}", 2
+                return "border-red", "text-red", f"Resp. Minima Bassa • {tipo_tempo}", 2
+        else:
+            if val_num is not None:
+                if 12 <= val_num <= 18: return "border-green", "text-green", f"Frequenza Regolare • {tipo_tempo}", 2
+                if 18 < val_num <= 20: return "border-yellow", "text-yellow", f"Frequenza Moderata • {tipo_tempo}", 2
+            return "border-red", "text-red", f"Frequenza Anomala • {tipo_tempo}", 2
+
+    # 13. RECUPERO FISICO E MENTALE (B27, B28)
+    if "recupero" in lbl:
+        if val_num is not None:
+            if val_num >= 70: return "border-green", "text-green", f"Recupero Ottimo • {tipo_tempo}", 2
+            if val_num >= 50: return "border-yellow", "text-yellow", f"Recupero Medio • {tipo_tempo}", 2
+        return "border-red", "text-red", f"Recupero Insufficiente • {tipo_tempo}", 2
+
+    # 14. CPAP & APNEE (B29, B31)
+    if "apnea" in lbl:
+        if "basso" in val_str or "assente" in val_str:
+            return "border-green", "text-green", f"Rischio Basso • {tipo_tempo}", 1
+        if "moderato" in val_str or "monitorare" in val_str:
+            return "border-yellow", "text-yellow", f"Rischio Moderato • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Rischio Elevato • {tipo_tempo}", 1
 
     if "cpap" in lbl:
-        if val_num is not None and val_num < 4.0:
-            return "border-red", "text-red", f"Aderenza CPAP insufficiente (<4h) • {tipo_tempo}", 1
-        elif val_num is not None and val_num < 6.0:
-            return "border-yellow", "text-yellow", f"Aderenza CPAP moderata • {tipo_tempo}", 1
-        return "border-green", "text-green", f"Aderenza terapia ventilatoria • {tipo_tempo}", 1
+        # Se il valore è in frazione di giorno (es. 0.25 = 6h)
+        if val_num is not None:
+            if val_num >= 0.25 or val_num >= 6.0: return "border-green", "text-green", f"Aderenza Ottima (≥6h) • {tipo_tempo}", 1
+            if val_num >= 0.1667 or val_num >= 4.0: return "border-yellow", "text-yellow", f"Aderenza Media (4-6h) • {tipo_tempo}", 1
+        return "border-red", "text-red", f"Aderenza Bassa (<4h) • {tipo_tempo}", 1
 
-    if "risvegli" in lbl or "interruzioni" in lbl:
-        if val_num is not None and val_num > 4.0:
-            return "border-red", "text-red", f"Risvegli frequenti • {tipo_tempo}", 2
-        elif val_num is not None and val_num >= 2.0:
-            return "border-yellow", "text-yellow", f"Interruzioni notturne / prostata • {tipo_tempo}", 2
-        return "border-green", "text-green", f"Continuità sonno ottimale • {tipo_tempo}", 2
+    # 15. FC MAX E MIN (B30)
+    if "fc max" in lbl or "massima e minima" in lbl:
+        if "-" in val_str:
+            try:
+                parti = val_str.split("-")
+                f_min = float(parti[0].strip())
+                f_max = float(parti[1].strip())
+                if f_min < 40 or f_max > 150:
+                    return "border-red", "text-red", f"Valori Fuori Soglia • {tipo_tempo}", 1
+            except ValueError:
+                pass
+        return "border-green", "text-green", f"Limiti Sicuri • {tipo_tempo}", 1
 
-    if "hrv" in lbl or "stress" in lbl:
-        if "moderato" in val_str or (val_num is not None and val_num < 20):
-            return "border-yellow", "text-yellow", f"Consigliato riposo attivo • {tipo_tempo}", 2
-        return "border-green", "text-green", f"Livello di recupero idoneo • {tipo_tempo}", 2
+    # 16. OBIETTIVI ATTIVITÀ (B32)
+    if "obiettivi attività" in lbl:
+        if "raggiunto" in val_str and "quasi" not in val_str: return "border-green", "text-green", f"Target Raggiunto • {tipo_tempo}", 3
+        if "quasi" in val_str: return "border-yellow", "text-yellow", f"Quasi Raggiunto • {tipo_tempo}", 3
+        return "border-red", "text-red", f"Da Incrementare • {tipo_tempo}", 3
 
-    if "passi" in lbl or "target" in lbl:
-        return "border-green", "text-green", f"Obiettivo movimento • {tipo_tempo}", 3
+    # DEFAULT INFORMATIVO
+    return "border-blue", "text-blue", f"Parametro Generale • {tipo_tempo}", 3
 
-    return "border-blue", "text-blue", f"Parametro generale • {tipo_tempo}", 3
-
-df_p = carica_pannello(URL_PANNELLO)
-df_w = carica_withings(URL_WITHINGS)
+df_p = carica_dati(URL_PANNELLO)
+df_c = carica_dati(URL_CRONOLOGIA)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
-# SEZIONE PROFILO PAZIENTE
-st.markdown("""
-    <div class="patient-header">
-        <div class="patient-title">👤 Profilo Paziente — 68 Anni</div>
-        <div class="patient-info">
-            <b>Quadri clinici e terapie in corso:</b><br>
-            <span class="badge-tag">Terapia Antipertensiva</span>
-            <span class="badge-tag">Beta-Bloccanti (Bradicardia)</span>
-            <span class="badge-tag">Terapia Anticoagulante a Vita</span>
-            <span class="badge-tag">Terapia Ventilatoria CPAP</span>
-            <span class="badge-tag">Prostata / Nicturia</span>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
-
 if df_p is not None:
-    gruppo_vitali, gruppo_sonno, gruppo_generale = [], [], []
+    gruppo_vitali = []
+    gruppo_sonno = []
+    gruppo_generale = []
     
     for idx, row in df_p.iterrows():
         if len(row) >= 2 and pd.notna(row[0]) and str(row[0]).strip() != "":
@@ -221,6 +298,7 @@ if df_p is not None:
                 else:
                     gruppo_generale.append(item)
 
+    # RENDER GRUPPI
     if gruppo_vitali:
         st.markdown('<div class="section-header">🚨 PARAMETRI VITALI E TERAPIA (Priorità Medica)</div>', unsafe_allow_html=True)
         cols = st.columns(3)
@@ -260,103 +338,33 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-# SEZIONE GRAFICI CLINICI
+# GRAFICO STORICO
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
-if df_w is not None and not df_w.empty:
+if df_c is not None and len(df_c) > 1:
     try:
-        col_data = [c for c in df_w.columns if "date" in c.lower() or "data" in c.lower()][0]
+        df_plot = df_c.copy()
+        df_plot.columns = df_plot.iloc[0]
+        df_plot = df_plot[1:]
         
-        df_plot = df_w.copy()
-        df_plot[col_data] = pd.to_datetime(df_plot[col_data], dayfirst=True, errors='coerce')
-        df_plot = df_plot.dropna(subset=[col_data]).sort_values(by=col_data)
-
-        opzione_grafico = st.selectbox(
-            "Seleziona il quadro clinico da analizzare per il medico:",
-            [
-                "🫀 Pressione Arteriosa (Sistolica / Diastolica)",
-                "🫁 Saturazione Ossigeno (SpO2 %) under-CPAP",
-                "🌙 Interruzioni Notturne / Risvegli (Nicturia)",
-                "⚡ Variabilità Cardiaca (HRV)",
-                "🌬️ Ore Utilizzo CPAP",
-                "📊 Punteggio Qualità del Sonno"
-            ]
-        )
-
-        if "Pressione Arteriosa" in opzione_grafico:
-            col_sist = [c for c in df_plot.columns if "sistole" in c.lower()][0]
-            col_diast = [c for c in df_plot.columns if "dias" in c.lower()][0]
-            
-            df_plot[col_sist] = pd.to_numeric(df_plot[col_sist].astype(str).str.replace(',', '.'), errors='coerce')
-            df_plot[col_diast] = pd.to_numeric(df_plot[col_diast].astype(str).str.replace(',', '.'), errors='coerce')
-            
+        col_x = df_plot.columns[0]
+        col_y = df_plot.columns[1]
+        
+        df_plot[col_x] = pd.to_datetime(df_plot[col_x], dayfirst=True, errors='coerce')
+        df_plot[col_y] = pd.to_numeric(df_plot[col_y].astype(str).str.replace(',', '.'), errors='coerce')
+        
+        df_plot = df_plot.dropna(subset=[col_x, col_y]).sort_values(by=col_x)
+        
+        if not df_plot.empty:
             fig = px.line(
-                df_plot, x=col_data, y=[col_sist, col_diast],
-                markers=True, title="Andamento Pressione Arteriosa (Sistolica / Diastolica)",
-                labels={col_data: "Data", "value": "mmHg", "variable": "Parametro"}
+                df_plot, 
+                x=col_x, 
+                y=col_y, 
+                markers=True, 
+                title=f"Andamento Storico: {col_y}",
+                labels={col_x: "Data", col_y: "Valore"}
             )
-            fig.add_hline(y=135, line_dash="dash", line_color="red", annotation_text="Soglia Sistolica (135)")
-            fig.add_hline(y=85, line_dash="dash", line_color="orange", annotation_text="Soglia Diastolica (85)")
+            fig.update_traces(line_color='#2980B9', line_width=3, marker_size=6)
             st.plotly_chart(fig, use_container_width=True)
-
-        elif "Saturazione" in opzione_grafico:
-            col_spo2 = [c for c in df_plot.columns if "spo2" in c.lower()][0]
-            df_plot[col_spo2] = pd.to_numeric(df_plot[col_spo2].astype(str).str.replace(',', '.'), errors='coerce')
-            
-            fig = px.line(
-                df_plot, x=col_data, y=col_spo2,
-                markers=True, title="Andamento Saturazione Ossigeno (SpO2 %) under-CPAP",
-                labels={col_data: "Data", col_spo2: "SpO2 %"}
-            )
-            fig.add_hline(y=95, line_dash="dash", line_color="green", annotation_text="Target Minimo (95%)")
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif "Interruzioni" in opzione_grafico:
-            col_risv = [c for c in df_plot.columns if "interruz" in c.lower() or "risvegl" in c.lower()][0]
-            df_plot[col_risv] = pd.to_numeric(df_plot[col_risv].astype(str).str.replace(',', '.'), errors='coerce')
-            
-            fig = px.bar(
-                df_plot, x=col_data, y=col_risv,
-                title="Frequenza Interruzioni Notturne / Risvegli",
-                labels={col_data: "Data", col_risv: "Numero Risvegli"}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif "Variabilità Cardiaca" in opzione_grafico:
-            col_hrv = [c for c in df_plot.columns if "hrv" in c.lower()][0]
-            df_plot[col_hrv] = pd.to_numeric(df_plot[col_hrv].astype(str).str.replace(',', '.'), errors='coerce')
-            
-            fig = px.line(
-                df_plot, x=col_data, y=col_hrv,
-                markers=True, title="Variabilità della Frequenza Cardiaca (HRV)",
-                labels={col_data: "Data", col_hrv: "HRV (ms)"}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        elif "CPAP" in opzione_grafico:
-            col_cpap = [c for c in df_plot.columns if "cpap" in c.lower()]
-            nome_col = col_cpap[0]
-            
-            df_plot['CPAP_Numerico'] = df_plot[nome_col].apply(converti_ore_decimale)
-            
-            fig = px.bar(
-                df_plot, x=col_data, y='CPAP_Numerico',
-                title="Ore Terapia CPAP Utilizzate per Notte",
-                labels={col_data: "Data", 'CPAP_Numerico': "Ore CPAP"}
-            )
-            fig.add_hline(y=4.0, line_dash="dash", line_color="red", annotation_text="Soglia Aderenza Minima (4 ore)")
-            st.plotly_chart(fig, use_container_width=True)
-
-        else:
-            col_qual = [c for c in df_plot.columns if "punteggio" in c.lower() or "qualit" in c.lower()][0]
-            df_plot[col_qual] = pd.to_numeric(df_plot[col_qual].astype(str).str.replace(',', '.'), errors='coerce')
-            
-            fig = px.line(
-                df_plot, x=col_data, y=col_qual,
-                markers=True, title=f"Andamento: {col_qual}",
-                labels={col_data: "Data", col_qual: "Punteggio"}
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"Si è verificato un errore durante la lettura dei dati: {e}")
+    except Exception:
+        st.info("Aggiornamento grafico in corso...")
