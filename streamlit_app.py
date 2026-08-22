@@ -61,7 +61,7 @@ st.markdown("""
 
 SHEET_ID = "1sKNtsluKQKPwqA-YToNexsHa0Gu7-Nnx8pCv628qeog"
 URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
-URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
+URL_WITHINGS = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
 
 @st.cache_data(ttl=2)
 def carica_dati(url):
@@ -272,11 +272,13 @@ def analizza_parametro(label, valore):
     # DEFAULT INFORMATIVO
     return "border-blue", "text-blue", f"Parametro Generale • {tipo_tempo}", 3
 
+# CARICAMENTO DATI
 df_p = carica_dati(URL_PANNELLO)
-df_c = carica_dati(URL_CRONOLOGIA)
+df_w = carica_dati(URL_WITHINGS)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
+# RENDERING CARDS DAL FOGLIO PANNELLO
 if df_p is not None:
     gruppo_vitali = []
     gruppo_sonno = []
@@ -336,29 +338,33 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-# GRAFICO STORICO CON TENDINA
+# RENDERING GRAFICO DALLO STORICO (DATI_WITHINGS)
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
-if df_c is not None and len(df_c) > 1:
+if df_w is not None and len(df_w) > 1:
     try:
-        df_plot = df_c.copy()
+        # Pulisce le intestazioni dal foglio Withings (Riga 1 = Nomi colonne)
+        df_plot = df_w.copy()
         df_plot.columns = df_plot.iloc[0]
         df_plot = df_plot[1:]
         
+        # Colonna A = Date (Data)
         col_x = df_plot.columns[0]
-        
         df_plot[col_x] = pd.to_datetime(df_plot[col_x], dayfirst=True, errors='coerce')
         
-        opzioni_grafico = [col for col in df_plot.columns[1:] if str(col).strip() != ""]
+        # Estrae tutte le colonne usabili per il grafico a tendina
+        opzioni_grafico = [col for col in df_plot.columns[1:] if str(col).strip() != "" and str(col).strip().lower() != "nan"]
         
+        # MENU A TENDINA
         parametro_scelto = st.selectbox(
             "Seleziona il parametro da analizzare nel tempo:", 
             options=opzioni_grafico
         )
         
         if parametro_scelto:
+            # Conversione pulita dei numeri
             df_plot[parametro_scelto] = pd.to_numeric(
-                df_plot[parametro_scelto].astype(str).str.replace(',', '.'), 
+                df_plot[parametro_scelto].astype(str).str.replace('%', '').str.replace(',', '.'), 
                 errors='coerce'
             )
             
