@@ -22,18 +22,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ID ESTRATTO DAL TUO LINK DI CONDIVISIONE
 SHEET_ID = "1sKNtsluKQKPwqA-YToNexsHa0Gu7-Nnx8pCv628qeog"
 
-# URL DIRETTI CSV PER SCHEDA PANNELLO E CRONOLOGIA
-URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
-URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=784819219"
+# URL CORRETTI CON GID INVERTITI (gid=0 di solito è il primo foglio principale)
+URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
+URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
 
 @st.cache_data(ttl=2)
 def carica_dati(url):
     try:
-        df = pd.read_csv(url, header=None)
-        return df
+        return pd.read_csv(url, header=None)
     except Exception:
         return None
 
@@ -42,25 +40,26 @@ df_c = carica_dati(URL_CRONOLOGIA)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
-if df_p is None:
-    st.error("⚠️ Impossibile accedere al foglio Google Sheets. Verifica le impostazioni della rete.")
-else:
-    st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI E BENESSERE</div>', unsafe_allow_html=True)
+# PANNELLO CLINICO
+if df_p is not None:
+    st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI PRIORTARI</div>', unsafe_allow_html=True)
     
-    # Lettura diretta di ogni riga presente nella scheda Pannello
+    # Filtriamo ed estraiamo solo le righe valide del foglio sintetico
     for idx, row in df_p.iterrows():
-        label = str(row[0]) if len(row) > 0 and pd.notna(row[0]) else ""
-        valore = str(row[1]) if len(row) > 1 and pd.notna(row[1]) else "--"
-        
-        if label and label.strip() != "":
-            st.markdown(f'''
-                <div class="metric-card">
-                    <div class="metric-title">{label}</div>
-                    <div class="metric-value">{valore}</div>
-                </div>
-            ''', unsafe_allow_html=True)
+        if len(row) >= 2 and pd.notna(row[0]) and str(row[0]).strip() != "":
+            label = str(row[0]).strip()
+            valore = str(row[1]).strip() if pd.notna(row[1]) else "--"
+            
+            # Escludiamo intestazioni generiche
+            if label.lower() not in ["date", "data", "date [data]"]:
+                st.markdown(f'''
+                    <div class="metric-card">
+                        <div class="metric-title">{label}</div>
+                        <div class="metric-value">{valore}</div>
+                    </div>
+                ''', unsafe_allow_html=True)
 
-# GRAFICI DI TENDENZA
+# GRAFICO DI TENDENZA CRONOLOGIA
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_c is not None and len(df_c) > 1:
@@ -81,8 +80,8 @@ if df_c is not None and len(df_c) > 1:
             fig = px.line(df_plot, x=col_x, y=col_y, markers=True, title=f"Tendenza {col_y}")
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Dati cronologia in attesa di caricamento.")
-    except Exception:
-        st.info("Grafico in elaborazione...")
+            st.info("Formato date o valori nella cronologia da verificare per la registrazione del grafico.")
+    except Exception as e:
+        st.info("Grafico in attesa di sincronizzazione dati...")
 else:
-    st.info("Impossibile caricare il foglio Cronologia.")
+    st.info("Impossibile caricare la Cronologia.")
