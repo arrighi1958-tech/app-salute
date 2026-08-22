@@ -292,7 +292,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# RENDERING DINAMICO CON UNIFICAZIONE PRESSIONE
+# RENDERING DINAMICO CON ESCLUSIONE DELLE INTESTAZIONI DI RIGA
 if df_p is not None:
     items_salute = []
     items_sonno = []
@@ -301,35 +301,46 @@ if df_p is not None:
     sistole_val = None
     diastole_val = None
 
+    # ELENCO TESTI DA IGNORARE (INTESTAZIONI FOGLIO GOOGLE)
+    intestazioni_da_escludere = [
+        "stile di vita e attività",
+        "salute del cuore (medie storiche)",
+        "qualità del sonno e recupero",
+        "qualità del sonno e recupero",
+        "pannello di controllo generale",
+        "date (data)"
+    ]
+
     for idx, row in df_p.iterrows():
         if len(row) >= 2 and pd.notna(row[0]) and str(row[0]).strip() != "":
             label = str(row[0]).strip()
             valore = str(row[1]).strip() if pd.notna(row[1]) else "--"
 
-            lbl_lower = label.lower()
+            lbl_clean = label.lower().replace('😴', '').replace('❤️', '').replace('💖', '').strip()
 
-            if label.lower() in ["stile di vita e attività", "salute del cuore (medie storiche)", "qualità del sonno e recupero", "pannello di controllo generale", "date (data)"]:
+            # Salta le celle che sono semplici intestazioni nel foglio
+            if lbl_clean in intestazioni_da_escludere or any(h in lbl_clean for h in ["salute del cuore", "qualità del sonno e recupero"]):
                 continue
 
-            # INTERCETTA SISTOLE E DIASTOLE PER UNIRLE
-            if "sistole" in lbl_lower:
+            # Intercetta sistole e diastole per unirle
+            if "sistole" in lbl_clean:
                 sistole_val = valore
                 continue
-            if "diastolica" in lbl_lower:
+            if "diastolica" in lbl_clean:
                 diastole_val = valore
                 continue
 
             bg_class, text_class, note = calcola_formattazione_condizionale(label, valore)
             item_tuple = (label, valore, bg_class, text_class, note)
 
-            if "fc tempo medio" in lbl_lower or "ecg" in lbl_lower or "salute" in lbl_lower or "stress" in lbl_lower or "apnea" in lbl_lower:
+            if "fc tempo medio" in lbl_clean or "ecg" in lbl_clean or "salute" in lbl_clean or "stress" in lbl_clean or "apnea" in lbl_clean:
                 items_salute.append(item_tuple)
-            elif "sonno" in lbl_lower or "risvegli" in lbl_lower or "temperatura" in lbl_lower or "respirat" in lbl_lower or "recupero" in lbl_lower or "cpap" in lbl_lower or "hrv" in lbl_lower:
+            elif "sonno" in lbl_clean or "risvegli" in lbl_clean or "temperatura" in lbl_clean or "respirat" in lbl_clean or "recupero" in lbl_clean or "cpap" in lbl_clean or "hrv" in lbl_clean:
                 items_sonno.append(item_tuple)
             else:
                 items_attivita.append(item_tuple)
 
-    # SE PRESENTI SISTOLE E DIASTOLE, CREA LA CARD PRESSIONE UNIFICATA IN CIMA A SALUTE
+    # CARD PRESSIONE UNIFICATA
     if sistole_val and diastole_val:
         press_val = f"{sistole_val} / {diastole_val} mmHg"
         bg_class, text_class, note = calcola_formattazione_condizionale("Pressione Arteriosa", press_val)
