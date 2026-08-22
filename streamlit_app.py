@@ -27,7 +27,7 @@ st.markdown("""
         margin-bottom: 4px;
     }
     .metric-value {
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 800;
         color: #111111 !important;
     }
@@ -96,63 +96,38 @@ CSV_CRONOLOGIA = f"{URL_CRONOLOGIA}&cache_bypass={timestamp}"
 @st.cache_data(ttl=5)
 def load_data(url):
     try:
+        df = pd.read_csv(url, header=None)
+        return df
+    except:
+        return None
+
+df_riep = load_data(CSV_RIEPILOGO)
+
+@st.cache_data(ttl=5)
+def load_cronologia(url):
+    try:
         df = pd.read_csv(url, header=0)
         df.columns = df.columns.str.strip()
         return df
     except:
         return None
 
-df_riep = load_data(CSV_RIEPILOGO)
-df_cron = load_data(CSV_CRONOLOGIA)
+df_cron = load_cronologia(CSV_CRONOLOGIA)
 
-def ottieni_valore(df, parole_chiave, e_testo=False, media_7gg=True, e_passi=False):
+# FUNZIONE PER ESTRARRE I VALORI DAL FOGLIO VERTICALE
+def ottieni_valore_verticale(df, parole_chiave):
     if df is None or df.empty:
         return "--"
-    
-    col_trovata = None
-    for parola in parole_chiave:
-        for col in df.columns:
-            if parola.lower() in col.lower():
-                col_trovata = col
-                break
-        if col_trovata:
-            break
-            
-    if not col_trovata:
-        return "--"
-        
     try:
-        serie_pulita = df[col_trovata].dropna()
-        if serie_pulita.empty:
-            return "--"
-            
-        ultimo_grezzo = str(serie_pulita.iloc[-1]).strip()
-        
-        if e_testo or "-" in ultimo_grezzo or ":" in ultimo_grezzo:
-            return ultimo_grezzo if ultimo_grezzo not in ["nan", "", "None", "#DIV/0!"] else "--"
-            
-        serie_num = pd.to_numeric(
-            serie_pulita.astype(str).str.replace(',', '.', regex=False), 
-            errors='coerce'
-        ).dropna()
-        
-        if serie_num.empty:
-            return ultimo_grezzo if ultimo_grezzo not in ["nan", "", "None", "#DIV/0!"] else "--"
-            
-        if media_7gg:
-            val_validi = serie_num[serie_num > 0].tail(7)
-            if val_validi.empty:
-                return "--"
-            v = val_validi.mean()
-        else:
-            v = serie_num.iloc[-1]
-            
-        if e_passi:
-            if v < 100:
-                v = v * 1000
-            return f"{int(round(v)):,}".replace(',', '.')
-            
-        return f"{v:.1f}".replace('.', ',') if v % 1 != 0 else f"{int(v)}"
+        for index, row in df.iterrows():
+            nome_riga = str(row[0]).strip().lower()
+            for parola in parole_chiave:
+                if parola.lower() in nome_riga:
+                    valore = str(row[1]).strip()
+                    if valore in ["nan", "", "None", "#DIV/0!"]:
+                        return "--"
+                    return valore
+        return "--"
     except:
         return "--"
 
@@ -164,15 +139,15 @@ st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</stro
 # ==========================================
 st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI PRIORITARI</div>', unsafe_allow_html=True)
 
-press_sist = ottieni_valore(df_riep, ["sistole", "sistolica"], media_7gg=True)
-press_diast = ottieni_valore(df_riep, ["diastole", "diastolica"], media_7gg=True)
-fc_sonno = ottieni_valore(df_riep, ["fc sonno", "sonno", "riposo", "bpm sonno"], media_7gg=True)
-fc_diurna = ottieni_valore(df_riep, ["fc diurna", "veglia", "diurna", "bpm diurna"], media_7gg=True)
-fc_min_max = ottieni_valore(df_riep, ["range", "min", "max", "analisi"], e_testo=True)
-ecg = ottieni_valore(df_riep, ["ecg", "tracciato"], e_testo=True)
-spo2 = ottieni_valore(df_riep, ["spo2", "saturazione"], media_7gg=True)
-ore_cpap = ottieni_valore(df_riep, ["cpap", "ore"], media_7gg=True)
-risvegli = ottieni_valore(df_riep, ["risvegli", "nicturia"], media_7gg=True)
+press_sist = ottieni_valore_verticale(df_riep, ["pressione sistolica", "sistole"])
+press_diast = ottieni_valore_verticale(df_riep, ["pressione diastolica"])
+fc_sonno = ottieni_valore_verticale(df_riep, ["frequenza battiti a riposo", "durante il sonno media frequenza"])
+fc_diurna = ottieni_valore_verticale(df_riep, ["media frequenza cardiaca diurna", "tempo medio sveglio"])
+fc_min_max = ottieni_valore_verticale(df_riep, ["analisi fc massima e minima"])
+ecg = ottieni_valore_verticale(df_riep, ["esito ecg registrato", "ecg ultimo"])
+spo2 = ottieni_valore_verticale(df_riep, ["ossigeno nel sangue", "spo2"])
+ore_cpap = ottieni_valore_verticale(df_riep, ["media ore utilizzo cpap"])
+risvegli = ottieni_valore_verticale(df_riep, ["media risvegli notturni", "interruzioni notturne"])
 
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Arteriosa (Media 7gg)</div><div class="metric-value">{press_sist} / {press_diast} <span style="font-size:16px;">mmHg</span></div><div class="metric-status">Target clinico ipertensione: < 130-140 / 80-85 mmHg</div></div>', unsafe_allow_html=True)
 
@@ -199,13 +174,13 @@ st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Risve
 # ==========================================
 st.markdown('<div class="section-header">📊 INDICATORI DI BENESSERE E STILE DI VITA</div>', unsafe_allow_html=True)
 
-punteggio_val = ottieni_valore(df_riep, ["punteggio", "indice", "withings"], media_7gg=False)
-passi = ottieni_valore(df_riep, ["passi", "step"], media_7gg=False, e_passi=True)
-durata_sonno = ottieni_valore(df_riep, ["durata sonno", "ore sonno"], e_testo=True)
-sonno_prof = ottieni_valore(df_riep, ["profondità", "qualità sonno"], e_testo=True)
-hrv = ottieni_valore(df_riep, ["hrv", "variabilità"], media_7gg=True)
-stress = ottieni_valore(df_riep, ["stress"], media_7gg=True)
-vo2max = ottieni_valore(df_riep, ["vo2"], media_7gg=False)
+punteggio_val = ottieni_valore_verticale(df_riep, ["punteggio di salute odierno"])
+passi = ottieni_valore_verticale(df_riep, ["passi media settimanale"])
+durata_sonno = ottieni_valore_verticale(df_riep, ["media ore di sonno (7gg)"])
+sonno_prof = ottieni_valore_verticale(df_riep, ["profondità del sonno giudizio"])
+hrv = ottieni_valore_verticale(df_riep, ["variabilità cardiaca (hrv)"])
+stress = ottieni_valore_verticale(df_riep, ["livello di stress stimato"])
+vo2max = ottieni_valore_verticale(df_riep, ["livello di fitness vo2 max"])
 
 st.markdown(f'''
     <div class="punteggio-card">
@@ -215,8 +190,8 @@ st.markdown(f'''
 ''', unsafe_allow_html=True)
 
 st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Passi Medi (7gg)</div><div class="metric-value">{passi}</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Durata Sonno (Giornaliero)</div><div class="metric-value">{durata_sonno}</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Variabilità Cardiaca HRV (7gg)</div><div class="metric-value">{hrv} ms</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Durata Sonno (Giornaliero)</div><div class="metric-value">{durata_sonno} <span style="font-size:16px;">ore</span></div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Variabilità Cardiaca HRV (7gg)</div><div class="metric-value">{hrv} <span style="font-size:16px;">ms</span></div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Profondità Sonno (Giornaliero)</div><div class="metric-value">{sonno_prof}</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Livello di Stress Stimato</div><div class="metric-value">{stress}</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Fitness VO2 Max</div><div class="metric-value">{vo2max}</div></div>', unsafe_allow_html=True)
