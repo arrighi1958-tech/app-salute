@@ -6,53 +6,24 @@ import plotly.express as px
 # CONFIGURAZIONE PAGINA
 st.set_page_config(page_title="Pannello Clinico Renato", page_icon="🩺", layout="centered")
 
-# CSS OTTIMIZZATO PER MOBILE E CONTRASTO
+# CSS OTTIMIZZATO
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #F4F6F7;
-    }
+    .stApp { background-color: #F4F6F7; }
     .metric-card {
-        background-color: #ffffff;
-        padding: 14px;
-        border-radius: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        margin-bottom: 12px;
-        border-left: 8px solid #cccccc;
+        background-color: #ffffff; padding: 14px; border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 12px; border-left: 8px solid #cccccc;
     }
-    .metric-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #2C3E50 !important;
-        margin-bottom: 4px;
-    }
-    .metric-value {
-        font-size: 24px;
-        font-weight: 800;
-        color: #111111 !important;
-    }
-    .metric-status {
-        font-size: 12px;
-        font-weight: 600;
-        margin-top: 4px;
-    }
+    .metric-title { font-size: 14px; font-weight: 700; color: #2C3E50 !important; margin-bottom: 4px; }
+    .metric-value { font-size: 24px; font-weight: 800; color: #111111 !important; }
+    .metric-status { font-size: 12px; font-weight: 600; margin-top: 4px; }
     .section-header {
-        font-size: 18px;
-        font-weight: 800;
-        color: #1A5276;
-        margin-top: 20px;
-        margin-bottom: 12px;
-        border-bottom: 2px solid #1A5276;
-        padding-bottom: 4px;
+        font-size: 18px; font-weight: 800; color: #1A5276; margin-top: 20px;
+        margin-bottom: 12px; border-bottom: 2px solid #1A5276; padding-bottom: 4px;
     }
     .clinical-box {
-        background-color: #EBF5FB;
-        padding: 12px;
-        border-radius: 8px;
-        border-left: 5px solid #1A5276;
-        margin-bottom: 16px;
-        font-size: 13px;
-        color: #1B4F72 !important;
+        background-color: #EBF5FB; padding: 12px; border-radius: 8px;
+        border-left: 5px solid #1A5276; margin-bottom: 16px; font-size: 13px; color: #1B4F72 !important;
     }
     .bg-verde { border-left-color: #2ECC71 !important; }
     .bg-verde .metric-status { color: #27AE60 !important; }
@@ -62,30 +33,15 @@ st.markdown("""
     .bg-rosso .metric-status { color: #C0392B !important; }
     .bg-blu { border-left-color: #3498DB !important; }
     .bg-blu .metric-status { color: #2980B9 !important; }
-    
     .punteggio-card {
-        background-color: #ffffff;
-        padding: 16px;
-        border-radius: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        margin-bottom: 15px;
-        text-align: center;
-        border: 2px solid #3498DB;
+        background-color: #ffffff; padding: 16px; border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06); margin-bottom: 15px; text-align: center; border: 2px solid #3498DB;
     }
-    .punteggio-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: #333333 !important;
-    }
-    .punteggio-value {
-        font-size: 32px;
-        font-weight: 900;
-        color: #1A5276 !important;
-    }
+    .punteggio-title { font-size: 14px; font-weight: 700; color: #333333 !important; }
+    .punteggio-value { font-size: 32px; font-weight: 900; color: #1A5276 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# URL GOOGLE SHEETS
 URL_RIEPILOGO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=320500951&single=true&output=csv"
 URL_CRONOLOGIA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj/pub?gid=784819219&single=true&output=csv"
 
@@ -114,19 +70,28 @@ def load_cronologia(url):
 
 df_cron = load_cronologia(CSV_CRONOLOGIA)
 
-# FUNZIONE PER ESTRARRE I VALORI DAL FOGLIO VERTICALE
-def ottieni_valore_verticale(df, parole_chiave):
+def ottieni_valore(df, parole_chiave):
     if df is None or df.empty:
         return "--"
     try:
-        for index, row in df.iterrows():
-            nome_riga = str(row[0]).strip().lower()
+        # Ricerca per riga (struttura verticale tipo Pannello)
+        for _, row in df.iterrows():
+            testo_riga = " ".join([str(val) for val in row if pd.notna(val)]).lower()
             for parola in parole_chiave:
-                if parola.lower() in nome_riga:
-                    valore = str(row[1]).strip()
-                    if valore in ["nan", "", "None", "#DIV/0!"]:
-                        return "--"
-                    return valore
+                if parola.lower() in testo_riga:
+                    valori_validi = [str(v).strip() for v in row if pd.notna(v) and str(v).strip() not in ["nan", "", "None", "#DIV/0!"]]
+                    if len(valori_validi) >= 2:
+                        return valori_validi[1]
+                    elif len(valori_validi) == 1:
+                        return valori_validi[0]
+        
+        # Fallback ricerca per colonna (struttura orizzontale)
+        for parola in parole_chiave:
+            for col in df.columns:
+                if parola.lower() in str(col).lower():
+                    serie = df[col].dropna()
+                    if not serie.empty:
+                        return str(serie.iloc[-1]).strip()
         return "--"
     except:
         return "--"
@@ -134,20 +99,18 @@ def ottieni_valore_verticale(df, parole_chiave):
 st.title("🩺 Scheda Clinica e Monitoraggio")
 st.markdown('<div class="clinical-box"><strong>PROFILO PAZIENTE (68 anni):</strong> Monitoraggio Terapia Anti-ipertensiva, Betabloccante (Bradicardia), Prostata/Nicturia e Terapia Ventilatoria CPAP.</div>', unsafe_allow_html=True)
 
-# ==========================================
-# 🚨 PARTE 1: PARAMETRI CLINICI PRIORITARI
-# ==========================================
+# 🚨 PARTE 1: PARAMETRI CLINICI
 st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI PRIORITARI</div>', unsafe_allow_html=True)
 
-press_sist = ottieni_valore_verticale(df_riep, ["pressione sistolica", "sistole"])
-press_diast = ottieni_valore_verticale(df_riep, ["pressione diastolica"])
-fc_sonno = ottieni_valore_verticale(df_riep, ["frequenza battiti a riposo", "durante il sonno media frequenza"])
-fc_diurna = ottieni_valore_verticale(df_riep, ["media frequenza cardiaca diurna", "tempo medio sveglio"])
-fc_min_max = ottieni_valore_verticale(df_riep, ["analisi fc massima e minima"])
-ecg = ottieni_valore_verticale(df_riep, ["esito ecg registrato", "ecg ultimo"])
-spo2 = ottieni_valore_verticale(df_riep, ["ossigeno nel sangue", "spo2"])
-ore_cpap = ottieni_valore_verticale(df_riep, ["media ore utilizzo cpap"])
-risvegli = ottieni_valore_verticale(df_riep, ["media risvegli notturni", "interruzioni notturne"])
+press_sist = ottieni_valore(df_riep, ["sistole", "sistolica"])
+press_diast = ottieni_valore(df_riep, ["diastolica", "diastole"])
+fc_sonno = ottieni_valore(df_riep, ["frequenza battiti a riposo", "sonno media frequenza", "fc sonno"])
+fc_diurna = ottieni_valore(df_riep, ["media frequenza cardiaca diurna", "tempo medio sveglio", "fc diurna"])
+fc_min_max = ottieni_valore(df_riep, ["analisi fc massima e minima", "range fc"])
+ecg = ottieni_valore(df_riep, ["esito ecg registrato", "tracciato ecg"])
+spo2 = ottieni_valore(df_riep, ["ossigeno nel sangue", "spo2"])
+ore_cpap = ottieni_valore(df_riep, ["media ore utilizzo cpap", "ore cpap"])
+risvegli = ottieni_valore(df_riep, ["media risvegli notturni", "interruzioni notturne"])
 
 st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Pressione Arteriosa (Media 7gg)</div><div class="metric-value">{press_sist} / {press_diast} <span style="font-size:16px;">mmHg</span></div><div class="metric-status">Target clinico ipertensione: < 130-140 / 80-85 mmHg</div></div>', unsafe_allow_html=True)
 
@@ -169,18 +132,16 @@ st.markdown(f'<div class="metric-card bg-verde"><div class="metric-title">Satura
 st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Tracciato ECG (Ultimo Esito Giornaliero)</div><div class="metric-value">{ecg}</div><div class="metric-status">Controllo aritmie / Fibrillazione Atriale</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Risvegli Notturni / Nicturia (Media 7gg)</div><div class="metric-value">{risvegli}</div><div class="metric-status">Interruzioni notturne legate a riposo / prostata</div></div>', unsafe_allow_html=True)
 
-# ==========================================
 # 📊 PARTE 2: INDICATORI DI BENESSERE
-# ==========================================
 st.markdown('<div class="section-header">📊 INDICATORI DI BENESSERE E STILE DI VITA</div>', unsafe_allow_html=True)
 
-punteggio_val = ottieni_valore_verticale(df_riep, ["punteggio di salute odierno"])
-passi = ottieni_valore_verticale(df_riep, ["passi media settimanale"])
-durata_sonno = ottieni_valore_verticale(df_riep, ["media ore di sonno (7gg)"])
-sonno_prof = ottieni_valore_verticale(df_riep, ["profondità del sonno giudizio"])
-hrv = ottieni_valore_verticale(df_riep, ["variabilità cardiaca (hrv)"])
-stress = ottieni_valore_verticale(df_riep, ["livello di stress stimato"])
-vo2max = ottieni_valore_verticale(df_riep, ["livello di fitness vo2 max"])
+punteggio_val = ottieni_valore(df_riep, ["punteggio di salute odierno", "punteggio di salute"])
+passi = ottieni_valore(df_riep, ["passi media settimanale", "passi medi"])
+durata_sonno = ottieni_valore(df_riep, ["media ore di sonno", "durata sonno"])
+sonno_prof = ottieni_valore(df_riep, ["profondità del sonno giudizio", "profondità sonno"])
+hrv = ottieni_valore(df_riep, ["variabilità cardiaca", "hrv"])
+stress = ottieni_valore(df_riep, ["livello di stress stimato", "stress"])
+vo2max = ottieni_valore(df_riep, ["livello di fitness vo2 max", "vo2 max"])
 
 st.markdown(f'''
     <div class="punteggio-card">
@@ -196,45 +157,28 @@ st.markdown(f'<div class="metric-card bg-blu"><div class="metric-title">Profondi
 st.markdown(f'<div class="metric-card bg-giallo"><div class="metric-title">Livello di Stress Stimato</div><div class="metric-value">{stress}</div></div>', unsafe_allow_html=True)
 st.markdown(f'<div class="metric-card bg-rosso"><div class="metric-title">Fitness VO2 Max</div><div class="metric-value">{vo2max}</div></div>', unsafe_allow_html=True)
 
-# ==========================================
-# 📈 PARTE 3: GRAFICI DI TENDENZA CLINICA
-# ==========================================
+# 📈 PARTE 3: GRAFICI DI TENDENZA
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_cron is not None and not df_cron.empty:
     data_col = df_cron.columns[0]
-    
     df_cron[data_col] = pd.to_datetime(df_cron[data_col], errors='coerce')
     df_cron = df_cron.dropna(subset=[data_col]).sort_values(by=data_col)
     
     def disegna_grafico(parola_chiave, titolo_grafico, colore_linea):
         col_trovata = None
         for col in df_cron.columns:
-            if parola_chiave.lower() in col.lower():
+            if parola_chiave.lower() in str(col).lower():
                 col_trovata = col
                 break
         if col_trovata:
             df_plot = df_cron.copy()
             df_plot[col_trovata] = pd.to_numeric(df_plot[col_trovata].astype(str).str.replace(',', '.', regex=False), errors='coerce')
             df_valido = df_plot.dropna(subset=[col_trovata])
-            
             if not df_valido.empty:
                 df_valido['Data_Formattata'] = df_valido[data_col].dt.strftime('%d/%m')
-                
-                fig = px.line(
-                    df_valido, 
-                    x='Data_Formattata', 
-                    y=col_trovata, 
-                    markers=True, 
-                    color_discrete_sequence=[colore_linea]
-                )
-                fig.update_layout(
-                    title=dict(text=titolo_grafico, font=dict(size=14)),
-                    xaxis_title="", 
-                    yaxis_title="bpm", 
-                    height=280, 
-                    margin=dict(l=10, r=10, t=40, b=10)
-                )
+                fig = px.line(df_valido, x='Data_Formattata', y=col_trovata, markers=True, color_discrete_sequence=[colore_linea])
+                fig.update_layout(title=dict(text=titolo_grafico, font=dict(size=14)), xaxis_title="", yaxis_title="bpm", height=280, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
     disegna_grafico('Frequenza Cardiac', '❤️ Tendenza Frequenza Cardiaca (bpm)', '#2ECC71')
