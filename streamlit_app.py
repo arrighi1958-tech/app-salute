@@ -280,6 +280,47 @@ def calcola_formattazione_condizionale(label, valore):
     # DEFAULT
     return "bg-blue", "text-blue", "Valore Registrato"
 
+# ASSEGNAZIONE PRIORITÀ CLINICA
+def ottieni_priorita_clinica(label):
+    lbl = label.lower()
+    
+    # SALUTE E CARDIO (Priorità 1 - 100)
+    if "pressione arteriosa" in lbl: return 1
+    if "analisi fc massima e minima" in lbl: return 2
+    if "fc tempo medio sveglio" in lbl: return 3
+    if "fc media durante il sonno" in lbl: return 4
+    if "ecg" in lbl: return 5
+    if "hrv durante il sonno" in lbl: return 6
+
+    # VENTIALZIONE E RESPIRAZIONE CPAP (Priorità 10 - 20)
+    if "cpap" in lbl: return 10
+    if "apnea" in lbl: return 11
+    if "spo2" in lbl: return 12
+    if "frequenza respiratoria media" in lbl: return 13
+    if "frequenza respiratoria minima" in lbl: return 14
+    if "qualità respiratoria" in lbl: return 15
+
+    # SONNO E RISVEGLI NOTTURNI (Priorità 20 - 30)
+    if "interruzioni notturne" in lbl: return 20
+    if "media ore di sonno" in lbl: return 21
+    if "media ore sonno profondo" in lbl: return 22
+    if "profondità del sonno" in lbl: return 23
+    if "media punteggio sonno" in lbl: return 24
+    if "punteggio di qualità del sonno" in lbl: return 25
+    if "temperatura del sonno" in lbl: return 26
+
+    # RECUPERO ED ATTIVITÀ FISICA (Priorità 30 - 40)
+    if "punteggio di salute" in lbl: return 30
+    if "livello di stress" in lbl: return 31
+    if "rapporto recupero hrv" in lbl: return 32
+    if "punteggio di recupero" in lbl: return 33
+    if "vo2" in lbl: return 34
+    if "passi" in lbl: return 35
+    if "raggiungimento obiettivi" in lbl: return 36
+    if "numero giorni" in lbl: return 37
+
+    return 99
+
 # CARICAMENTO DATI
 df_p = carica_dati(URL_PANNELLO)
 df_w = carica_dati(URL_WITHINGS)
@@ -292,7 +333,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# RENDERING DINAMICO CON ESCLUSIONE DELLE INTESTAZIONI DI RIGA
+# RENDERING DINAMICO CON CONVERGENZA CLINICA E ORDINAMENTO GERARCHICO
 if df_p is not None:
     items_salute = []
     items_sonno = []
@@ -301,11 +342,9 @@ if df_p is not None:
     sistole_val = None
     diastole_val = None
 
-    # ELENCO TESTI DA IGNORARE (INTESTAZIONI FOGLIO GOOGLE)
     intestazioni_da_escludere = [
         "stile di vita e attività",
         "salute del cuore (medie storiche)",
-        "qualità del sonno e recupero",
         "qualità del sonno e recupero",
         "pannello di controllo generale",
         "date (data)"
@@ -318,11 +357,9 @@ if df_p is not None:
 
             lbl_clean = label.lower().replace('😴', '').replace('❤️', '').replace('💖', '').strip()
 
-            # Salta le celle che sono semplici intestazioni nel foglio
             if lbl_clean in intestazioni_da_escludere or any(h in lbl_clean for h in ["salute del cuore", "qualità del sonno e recupero"]):
                 continue
 
-            # Intercetta sistole e diastole per unirle
             if "sistole" in lbl_clean:
                 sistole_val = valore
                 continue
@@ -331,26 +368,32 @@ if df_p is not None:
                 continue
 
             bg_class, text_class, note = calcola_formattazione_condizionale(label, valore)
-            item_tuple = (label, valore, bg_class, text_class, note)
+            prio = ottieni_priorita_clinica(label)
+            item_tuple = (prio, label, valore, bg_class, text_class, note)
 
-            if "fc tempo medio" in lbl_clean or "ecg" in lbl_clean or "salute" in lbl_clean or "stress" in lbl_clean or "apnea" in lbl_clean:
+            if prio < 20:
                 items_salute.append(item_tuple)
-            elif "sonno" in lbl_clean or "risvegli" in lbl_clean or "temperatura" in lbl_clean or "respirat" in lbl_clean or "recupero" in lbl_clean or "cpap" in lbl_clean or "hrv" in lbl_clean:
+            elif prio < 30:
                 items_sonno.append(item_tuple)
             else:
                 items_attivita.append(item_tuple)
 
-    # CARD PRESSIONE UNIFICATA
+    # UNIFICAZIONE PRESSIONE ARTERIOSA
     if sistole_val and diastole_val:
         press_val = f"{sistole_val} / {diastole_val} mmHg"
         bg_class, text_class, note = calcola_formattazione_condizionale("Pressione Arteriosa", press_val)
-        items_salute.insert(0, ("Pressione Arteriosa (Media 7gg)", press_val, bg_class, text_class, note))
+        items_salute.append((1, "Pressione Arteriosa (Media 7gg)", press_val, bg_class, text_class, note))
 
-    # SEZIONE 1: SALUTE E VITALI
+    # ORDINAMENTO EFFETTIVO IN BASE ALLA PRIORITÀ CLINICA
+    items_salute.sort(key=lambda x: x[0])
+    items_sonno.sort(key=lambda x: x[0])
+    items_attivita.sort(key=lambda x: x[0])
+
+    # SEZIONE 1: QUANDO CARDIOVASCOLARE E CPAP
     if items_salute:
-        st.markdown('<div class="section-header">🚨 SALUTE DEL CUORE E PARAMETRI VITALI</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🚨 SALUTE CARDIOVASCOLARE, RESPIRAZIONE E CPAP</div>', unsafe_allow_html=True)
         cols = st.columns(3)
-        for index, (lbl, val, bg_c, txt_c, note) in enumerate(items_salute):
+        for index, (prio, lbl, val, bg_c, txt_c, note) in enumerate(items_salute):
             with cols[index % 3]:
                 st.markdown(f'''
                     <div class="card-container {bg_c}">
@@ -360,11 +403,11 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-    # SEZIONE 2: SONNO E RECUPERO
+    # SEZIONE 2: QUALITÀ DEL SONNO E RISVEGLI NOTTURNI
     if items_sonno:
-        st.markdown('<div class="section-header">🌙 QUALITÀ DEL SONNO E RECUPERO</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🌙 ARCHITETTURA DEL SONNO E INTERRUZIONI</div>', unsafe_allow_html=True)
         cols = st.columns(3)
-        for index, (lbl, val, bg_c, txt_c, note) in enumerate(items_sonno):
+        for index, (prio, lbl, val, bg_c, txt_c, note) in enumerate(items_sonno):
             with cols[index % 3]:
                 st.markdown(f'''
                     <div class="card-container {bg_c}">
@@ -374,11 +417,11 @@ if df_p is not None:
                     </div>
                 ''', unsafe_allow_html=True)
 
-    # SEZIONE 3: STILE DI VITA ED ATTIVITÀ
+    # SEZIONE 3: EFFICIENZA E STILE DI VITA
     if items_attivita:
-        st.markdown('<div class="section-header">🏃 STILE DI VITA ED ATTIVITÀ</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🏃 RECUPERO, ATTIVITÀ ED INDICI GENERALI</div>', unsafe_allow_html=True)
         cols = st.columns(3)
-        for index, (lbl, val, bg_c, txt_c, note) in enumerate(items_attivita):
+        for index, (prio, lbl, val, bg_c, txt_c, note) in enumerate(items_attivita):
             with cols[index % 3]:
                 st.markdown(f'''
                     <div class="card-container {bg_c}">
