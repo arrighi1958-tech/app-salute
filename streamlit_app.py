@@ -22,30 +22,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# URL DI ESPORTAZIONE DIRETTA CSV (Google Sheets)
-DOC_ID = "2PACX-1vTPoEryjtZvVcaBEvSkgfh7qaeYXUJEmmDcZJh6fzBMZz80v1p7M009sdIVicHuI-Lj6AmC6SdWWsDj"
-URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/e/{DOC_ID}/pub?gid=320500951&single=true&output=csv"
-URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/e/{DOC_ID}/pub?gid=784819219&single=true&output=csv"
+# ID ESTRATTO DAL TUO LINK DI CONDIVISIONE
+SHEET_ID = "1sKNtsluKQKPwqA-YToNexsHa0Gu7-Nnx8pCv628qeog"
 
-@st.cache_data(ttl=5)
-def carica_csv(url):
+# URL DIRETTI CSV PER SCHEDA PANNELLO E CRONOLOGIA
+URL_PANNELLO = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=320500951"
+URL_CRONOLOGIA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=784819219"
+
+@st.cache_data(ttl=2)
+def carica_dati(url):
     try:
-        return pd.read_csv(url, header=None)
-    except Exception as e:
+        df = pd.read_csv(url, header=None)
+        return df
+    except Exception:
         return None
 
-df_p = carica_csv(URL_PANNELLO)
-df_c = carica_csv(URL_CRONOLOGIA)
+df_p = carica_dati(URL_PANNELLO)
+df_c = carica_dati(URL_CRONOLOGIA)
 
 st.title("🩺 Scheda Clinica e Monitoraggio")
 
-# SE DIAGNOSTICA CSV (Per capire subito se il link risponde)
 if df_p is None:
-    st.error("⚠️ Impossibile scaricare i dati da Google Sheets. Verificare la connessione o i permessi del link.")
+    st.error("⚠️ Impossibile accedere al foglio Google Sheets. Verifica le impostazioni della rete.")
 else:
     st.markdown('<div class="section-header">🚨 PARAMETRI CLINICI E BENESSERE</div>', unsafe_allow_html=True)
     
-    # Visualizza i dati riga per riga trovati nel foglio Pannello
+    # Lettura diretta di ogni riga presente nella scheda Pannello
     for idx, row in df_p.iterrows():
         label = str(row[0]) if len(row) > 0 and pd.notna(row[0]) else ""
         valore = str(row[1]) if len(row) > 1 and pd.notna(row[1]) else "--"
@@ -58,12 +60,11 @@ else:
                 </div>
             ''', unsafe_allow_html=True)
 
-# GRAFICO DI TENDENZA
+# GRAFICI DI TENDENZA
 st.markdown('<div class="section-header">📈 GRAFICI DI TENDENZA CLINICA</div>', unsafe_allow_html=True)
 
 if df_c is not None and len(df_c) > 1:
     try:
-        # Pulisce la tabella e prende le prime due colonne
         df_plot = df_c.copy()
         df_plot.columns = df_plot.iloc[0]
         df_plot = df_plot[1:]
@@ -80,8 +81,8 @@ if df_c is not None and len(df_c) > 1:
             fig = px.line(df_plot, x=col_x, y=col_y, markers=True, title=f"Tendenza {col_y}")
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Dati cronologia non sufficienti per il grafico.")
-    except Exception as e:
-        st.info("In attesa di dati validi per il grafico.")
+            st.info("Dati cronologia in attesa di caricamento.")
+    except Exception:
+        st.info("Grafico in elaborazione...")
 else:
     st.info("Impossibile caricare il foglio Cronologia.")
